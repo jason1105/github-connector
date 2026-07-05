@@ -34,6 +34,7 @@ describe('listRepoTree', () => {
           { path: 'src/index.ts', type: 'blob', sha: 'abc123', size: 42 },
           { path: 'src', type: 'tree', sha: 'def456' },
         ],
+        truncated: false,
       },
     });
 
@@ -42,14 +43,17 @@ describe('listRepoTree', () => {
     expect(mockGetTree).toHaveBeenCalledWith(
       expect.objectContaining({ owner: 'octo', repo: 'hello', tree_sha: 'main', recursive: '1' })
     );
-    expect(result).toEqual([
-      { path: 'src/index.ts', type: 'blob', sha: 'abc123', size: 42 },
-      { path: 'src', type: 'tree', sha: 'def456' },
-    ]);
+    expect(result).toEqual({
+      entries: [
+        { path: 'src/index.ts', type: 'blob', sha: 'abc123', size: 42 },
+        { path: 'src', type: 'tree', sha: 'def456' },
+      ],
+      truncated: false,
+    });
   });
 
   it('defaults ref to HEAD when not provided', async () => {
-    mockGetTree.mockResolvedValue({ data: { tree: [] } });
+    mockGetTree.mockResolvedValue({ data: { tree: [], truncated: false } });
 
     await listRepoTree({ owner: 'octo', repo: 'hello' });
 
@@ -65,12 +69,32 @@ describe('listRepoTree', () => {
           { path: 'src/index.ts', type: 'blob', sha: 'abc123' },
           { path: 'docs/readme.md', type: 'blob', sha: 'def456' },
         ],
+        truncated: false,
       },
     });
 
     const result = await listRepoTree({ owner: 'octo', repo: 'hello', path: 'src' });
 
-    expect(result).toEqual([{ path: 'src/index.ts', type: 'blob', sha: 'abc123' }]);
+    expect(result).toEqual({
+      entries: [{ path: 'src/index.ts', type: 'blob', sha: 'abc123' }],
+      truncated: false,
+    });
+  });
+
+  it('propagates truncated: true when GitHub reports the tree was too large to return in full', async () => {
+    mockGetTree.mockResolvedValue({
+      data: {
+        tree: [{ path: 'src/index.ts', type: 'blob', sha: 'abc123' }],
+        truncated: true,
+      },
+    });
+
+    const result = await listRepoTree({ owner: 'octo', repo: 'hello', ref: 'main' });
+
+    expect(result).toEqual({
+      entries: [{ path: 'src/index.ts', type: 'blob', sha: 'abc123' }],
+      truncated: true,
+    });
   });
 });
 

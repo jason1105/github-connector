@@ -12,7 +12,7 @@ export async function listRepoTree(params: {
   repo: string;
   ref?: string;
   path?: string;
-}): Promise<TreeEntry[]> {
+}): Promise<{ entries: TreeEntry[]; truncated: boolean }> {
   const octokit = getOctokit();
   const { data } = await octokit.rest.git.getTree({
     owner: params.owner,
@@ -28,9 +28,12 @@ export async function listRepoTree(params: {
     size: entry.size,
   }));
 
-  if (!params.path) return entries;
+  const truncated = data.truncated ?? false;
+
+  if (!params.path) return { entries, truncated };
   const prefix = params.path.endsWith('/') ? params.path : `${params.path}/`;
-  return entries.filter((e) => e.path === params.path || e.path.startsWith(prefix));
+  const filtered = entries.filter((e) => e.path === params.path || e.path.startsWith(prefix));
+  return { entries: filtered, truncated };
 }
 
 export async function getFileContent(params: {
