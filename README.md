@@ -10,3 +10,7 @@ A ChatGPT App (MCP connector) for operating on GitHub repositories: list files, 
 4. `npm test` to run unit tests.
 5. Deploy to Vercel; set `GITHUB_TOKEN` and `CONNECTOR_SECRET` as Vercel project environment variables.
 6. Configure the ChatGPT connector to call `https://<your-deployment>.vercel.app/mcp` with header `X-Connector-Secret: <CONNECTOR_SECRET>`.
+
+## Live deployment
+
+- Production: https://github-connector-lvw1105-8053s-projects.vercel.app/mcp
