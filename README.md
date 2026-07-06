@@ -13,4 +13,4 @@ A ChatGPT App (MCP connector) for operating on GitHub repositories: list files, 
 
 ## Live deployment
 
-- Production: https://github-connector-lvw1105-8053s-projects.vercel.app/mcp
+- Production: https://github-connector.jason1105.uk/mcp
