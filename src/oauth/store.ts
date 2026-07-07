@@ -66,10 +66,8 @@ export async function savePendingAuthorization(state: string, data: PendingAutho
 
 export async function consumePendingAuthorization(state: string): Promise<PendingAuthorization | undefined> {
   const key = `oauth:pending:${state}`;
-  const data = await getRedis().get<PendingAuthorization>(key);
-  if (!data) return undefined;
-  await getRedis().del(key);
-  return data;
+  const data = await getRedis().getdel<PendingAuthorization>(key);
+  return data ?? undefined;
 }
 
 export async function saveAuthCode(code: string, data: McpAuthCode): Promise<void> {
@@ -83,10 +81,8 @@ export async function getAuthCode(code: string): Promise<McpAuthCode | undefined
 
 export async function consumeAuthCode(code: string): Promise<McpAuthCode | undefined> {
   const key = `mcp:authcode:${code}`;
-  const data = await getRedis().get<McpAuthCode>(key);
-  if (!data) return undefined;
-  await getRedis().del(key);
-  return data;
+  const data = await getRedis().getdel<McpAuthCode>(key);
+  return data ?? undefined;
 }
 
 export async function saveMcpTokenPair(
@@ -105,10 +101,8 @@ export async function getMcpAccessToken(token: string): Promise<McpTokenData | u
 
 export async function consumeMcpRefreshToken(token: string): Promise<McpTokenData | undefined> {
   const key = `mcp:refresh:${token}`;
-  const data = await getRedis().get<McpTokenData>(key);
-  if (!data) return undefined;
-  await getRedis().del(key);
-  return data;
+  const data = await getRedis().getdel<McpTokenData>(key);
+  return data ?? undefined;
 }
 
 export async function getGithubToken(userId: string): Promise<GithubTokenData | undefined> {

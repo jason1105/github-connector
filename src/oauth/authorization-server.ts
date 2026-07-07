@@ -72,6 +72,9 @@ export function createAuthorizationServerProvider() {
       if (!data) {
         throw new Error('Authorization code not found or expired');
       }
+      if (client.client_id !== data.clientId) {
+        throw new Error('Client mismatch: this authorization code was not issued to the requesting client');
+      }
 
       const accessToken = randomToken();
       const refreshToken = randomToken();
@@ -96,6 +99,9 @@ export function createAuthorizationServerProvider() {
       const data = await store.consumeMcpRefreshToken(refreshToken);
       if (!data) {
         throw new Error('Refresh token not found or expired');
+      }
+      if (client.client_id !== data.clientId) {
+        throw new Error('Client mismatch: this refresh token was not issued to the requesting client');
       }
 
       const accessToken = randomToken();

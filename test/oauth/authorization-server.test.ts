@@ -156,6 +156,15 @@ describe('createAuthorizationServerProvider', () => {
     );
   });
 
+  it('exchangeAuthorizationCode throws when the code was issued to a different client', async () => {
+    mockConsumeAuthCode.mockResolvedValue({ clientId: 'victim-client', userId: '42', codeChallenge: 'challenge-xyz', redirectUri: 'https://chatgpt.com/callback' });
+    const provider = createAuthorizationServerProvider();
+    await expect(
+      provider.exchangeAuthorizationCode({ client_id: 'attacker-client' } as any, 'code-1')
+    ).rejects.toThrow();
+    expect(mockSaveMcpTokenPair).not.toHaveBeenCalled();
+  });
+
   it('exchangeRefreshToken consumes the refresh token and mints a fresh pair', async () => {
     mockConsumeMcpRefreshToken.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: Math.floor(Date.now() / 1000) - 100 });
     const provider = createAuthorizationServerProvider();
@@ -181,6 +190,15 @@ describe('createAuthorizationServerProvider', () => {
     mockConsumeMcpRefreshToken.mockResolvedValue(undefined);
     const provider = createAuthorizationServerProvider();
     await expect(provider.exchangeRefreshToken({ client_id: 'abc' } as any, 'bad-refresh')).rejects.toThrow();
+  });
+
+  it('exchangeRefreshToken throws when the token was issued to a different client', async () => {
+    mockConsumeMcpRefreshToken.mockResolvedValue({ clientId: 'victim-client', userId: '42', scopes: ['repo'], expiresAt: Math.floor(Date.now() / 1000) - 100 });
+    const provider = createAuthorizationServerProvider();
+    await expect(
+      provider.exchangeRefreshToken({ client_id: 'attacker-client' } as any, 'refresh-1')
+    ).rejects.toThrow();
+    expect(mockSaveMcpTokenPair).not.toHaveBeenCalled();
   });
 
   it('verifyAccessToken returns AuthInfo with the githubUserId stashed in extra', async () => {

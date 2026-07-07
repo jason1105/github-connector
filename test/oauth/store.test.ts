@@ -10,9 +10,10 @@ process.env.KV_REST_API_TOKEN ??= 'test-token';
 const mockGet = vi.fn();
 const mockSet = vi.fn();
 const mockDel = vi.fn();
+const mockGetdel = vi.fn();
 
 vi.mock('@upstash/redis', () => ({
-  Redis: vi.fn(() => ({ get: mockGet, set: mockSet, del: mockDel })),
+  Redis: vi.fn(() => ({ get: mockGet, set: mockSet, del: mockDel, getdel: mockGetdel })),
 }));
 
 import {
@@ -61,20 +62,18 @@ describe('store', () => {
       expect(mockSet).toHaveBeenCalledWith('oauth:pending:internal-state-1', JSON.stringify(data), { ex: 600 });
     });
 
-    it('consumes (gets and deletes) a pending authorization', async () => {
+    it('consumes (atomically gets and deletes) a pending authorization', async () => {
       const data = { clientId: 'abc', codeChallenge: 'xyz', redirectUri: 'https://chatgpt.com/cb', chatgptState: 's1' };
-      mockGet.mockResolvedValue(data);
+      mockGetdel.mockResolvedValue(data);
       const result = await consumePendingAuthorization('internal-state-1');
-      expect(mockGet).toHaveBeenCalledWith('oauth:pending:internal-state-1');
-      expect(mockDel).toHaveBeenCalledWith('oauth:pending:internal-state-1');
+      expect(mockGetdel).toHaveBeenCalledWith('oauth:pending:internal-state-1');
       expect(result).toEqual(data);
     });
 
     it('returns undefined when consuming a missing pending authorization', async () => {
-      mockGet.mockResolvedValue(null);
+      mockGetdel.mockResolvedValue(null);
       const result = await consumePendingAuthorization('missing');
       expect(result).toBeUndefined();
-      expect(mockDel).not.toHaveBeenCalled();
     });
   });
 
@@ -94,11 +93,11 @@ describe('store', () => {
       expect(result).toEqual(data);
     });
 
-    it('consumes (gets and deletes) an auth code', async () => {
+    it('consumes (atomically gets and deletes) an auth code', async () => {
       const data = { clientId: 'abc', userId: '42', codeChallenge: 'xyz', redirectUri: 'https://chatgpt.com/cb' };
-      mockGet.mockResolvedValue(data);
+      mockGetdel.mockResolvedValue(data);
       const result = await consumeAuthCode('code-1');
-      expect(mockDel).toHaveBeenCalledWith('mcp:authcode:code-1');
+      expect(mockGetdel).toHaveBeenCalledWith('mcp:authcode:code-1');
       expect(result).toEqual(data);
     });
   });
@@ -125,10 +124,10 @@ describe('store', () => {
       expect(result).toEqual({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 });
     });
 
-    it('consumes (gets and deletes) a refresh token', async () => {
-      mockGet.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 });
+    it('consumes (atomically gets and deletes) a refresh token', async () => {
+      mockGetdel.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 });
       const result = await consumeMcpRefreshToken('refresh-1');
-      expect(mockDel).toHaveBeenCalledWith('mcp:refresh:refresh-1');
+      expect(mockGetdel).toHaveBeenCalledWith('mcp:refresh:refresh-1');
       expect(result).toEqual({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 });
     });
   });
