@@ -1,14 +1,16 @@
-import { getOctokit } from './client.js';
+import type { Octokit } from 'octokit';
 
-export async function createPullRequest(params: {
-  owner: string;
-  repo: string;
-  title: string;
-  head: string;
-  base: string;
-  body?: string;
-}): Promise<{ number: number; url: string }> {
-  const octokit = getOctokit();
+export async function createPullRequest(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    title: string;
+    head: string;
+    base: string;
+    body?: string;
+  }
+): Promise<{ number: number; url: string }> {
   const { data } = await octokit.rest.pulls.create({
     owner: params.owner,
     repo: params.repo,
@@ -20,12 +22,14 @@ export async function createPullRequest(params: {
   return { number: data.number, url: data.html_url };
 }
 
-export async function listPullRequests(params: {
-  owner: string;
-  repo: string;
-  state?: 'open' | 'closed' | 'all';
-}): Promise<Array<{ number: number; title: string; state: string; url: string }>> {
-  const octokit = getOctokit();
+export async function listPullRequests(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    state?: 'open' | 'closed' | 'all';
+  }
+): Promise<Array<{ number: number; title: string; state: string; url: string }>> {
   const { data } = await octokit.rest.pulls.list({
     owner: params.owner,
     repo: params.repo,
@@ -34,12 +38,14 @@ export async function listPullRequests(params: {
   return data.map((pr) => ({ number: pr.number, title: pr.title, state: pr.state, url: pr.html_url }));
 }
 
-export async function getPullRequest(params: {
-  owner: string;
-  repo: string;
-  pullNumber: number;
-}): Promise<{ number: number; title: string; state: string; body: string | null; mergeable: boolean | null; url: string }> {
-  const octokit = getOctokit();
+export async function getPullRequest(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    pullNumber: number;
+  }
+): Promise<{ number: number; title: string; state: string; body: string | null; mergeable: boolean | null; url: string }> {
   const { data } = await octokit.rest.pulls.get({
     owner: params.owner,
     repo: params.repo,
@@ -55,13 +61,15 @@ export async function getPullRequest(params: {
   };
 }
 
-export async function mergePullRequest(params: {
-  owner: string;
-  repo: string;
-  pullNumber: number;
-  mergeMethod?: 'merge' | 'squash' | 'rebase';
-}): Promise<{ merged: boolean; sha: string; message: string }> {
-  const octokit = getOctokit();
+export async function mergePullRequest(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    pullNumber: number;
+    mergeMethod?: 'merge' | 'squash' | 'rebase';
+  }
+): Promise<{ merged: boolean; sha: string; message: string }> {
   const { data } = await octokit.rest.pulls.merge({
     owner: params.owner,
     repo: params.repo,

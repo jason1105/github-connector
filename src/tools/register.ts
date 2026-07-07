@@ -3,9 +3,23 @@ import { z } from 'zod';
 import { listRepoTree, getFileContent, createOrUpdateFile } from '../github/repos.js';
 import { createIssue, listIssues, getIssue, createIssueComment } from '../github/issues.js';
 import { createPullRequest, listPullRequests, getPullRequest, mergePullRequest } from '../github/pulls.js';
+import { getGithubToken } from '../oauth/store.js';
+import { getOctokit } from '../github/client.js';
 
 function textResult(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+}
+
+async function octokitFromExtra(extra: { authInfo?: { extra?: Record<string, unknown> } }) {
+  const githubUserId = extra.authInfo?.extra?.githubUserId;
+  if (typeof githubUserId !== 'string') {
+    throw new Error('Not authenticated: missing GitHub user context');
+  }
+  const tokenData = await getGithubToken(githubUserId);
+  if (!tokenData) {
+    throw new Error('GitHub account not connected — please reconnect via the OAuth flow');
+  }
+  return getOctokit(tokenData.accessToken);
 }
 
 export function registerAllTools(server: McpServer): void {
@@ -20,7 +34,10 @@ export function registerAllTools(server: McpServer): void {
         path: z.string().optional().describe('Restrict results to this path prefix'),
       },
     },
-    async ({ owner, repo, ref, path }) => textResult(await listRepoTree({ owner, repo, ref, path }))
+    async ({ owner, repo, ref, path }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await listRepoTree(octokit, { owner, repo, ref, path }));
+    }
   );
 
   server.registerTool(
@@ -34,7 +51,10 @@ export function registerAllTools(server: McpServer): void {
         ref: z.string().optional().describe('Branch, tag, or commit SHA'),
       },
     },
-    async ({ owner, repo, path, ref }) => textResult(await getFileContent({ owner, repo, path, ref }))
+    async ({ owner, repo, path, ref }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await getFileContent(octokit, { owner, repo, path, ref }));
+    }
   );
 
   server.registerTool(
@@ -52,10 +72,12 @@ export function registerAllTools(server: McpServer): void {
         baseBranch: z.string().optional().describe('Branch to base the new branch on when createBranch is true (default: main)'),
       },
     },
-    async ({ owner, repo, path, content, message, branch, createBranch, baseBranch }) =>
-      textResult(
-        await createOrUpdateFile({ owner, repo, path, content, message, branch, createBranch, baseBranch })
-      )
+    async ({ owner, repo, path, content, message, branch, createBranch, baseBranch }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(
+        await createOrUpdateFile(octokit, { owner, repo, path, content, message, branch, createBranch, baseBranch })
+      );
+    }
   );
 
   server.registerTool(
@@ -70,8 +92,10 @@ export function registerAllTools(server: McpServer): void {
         labels: z.array(z.string()).optional(),
       },
     },
-    async ({ owner, repo, title, body, labels }) =>
-      textResult(await createIssue({ owner, repo, title, body, labels }))
+    async ({ owner, repo, title, body, labels }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await createIssue(octokit, { owner, repo, title, body, labels }));
+    }
   );
 
   server.registerTool(
@@ -84,7 +108,10 @@ export function registerAllTools(server: McpServer): void {
         state: z.enum(['open', 'closed', 'all']).optional().describe('Defaults to open'),
       },
     },
-    async ({ owner, repo, state }) => textResult(await listIssues({ owner, repo, state }))
+    async ({ owner, repo, state }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await listIssues(octokit, { owner, repo, state }));
+    }
   );
 
   server.registerTool(
@@ -97,7 +124,10 @@ export function registerAllTools(server: McpServer): void {
         issueNumber: z.number().int().describe('Issue number'),
       },
     },
-    async ({ owner, repo, issueNumber }) => textResult(await getIssue({ owner, repo, issueNumber }))
+    async ({ owner, repo, issueNumber }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await getIssue(octokit, { owner, repo, issueNumber }));
+    }
   );
 
   server.registerTool(
@@ -111,8 +141,10 @@ export function registerAllTools(server: McpServer): void {
         body: z.string(),
       },
     },
-    async ({ owner, repo, issueNumber, body }) =>
-      textResult(await createIssueComment({ owner, repo, issueNumber, body }))
+    async ({ owner, repo, issueNumber, body }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await createIssueComment(octokit, { owner, repo, issueNumber, body }));
+    }
   );
 
   server.registerTool(
@@ -128,8 +160,10 @@ export function registerAllTools(server: McpServer): void {
         body: z.string().optional(),
       },
     },
-    async ({ owner, repo, title, head, base, body }) =>
-      textResult(await createPullRequest({ owner, repo, title, head, base, body }))
+    async ({ owner, repo, title, head, base, body }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await createPullRequest(octokit, { owner, repo, title, head, base, body }));
+    }
   );
 
   server.registerTool(
@@ -142,7 +176,10 @@ export function registerAllTools(server: McpServer): void {
         state: z.enum(['open', 'closed', 'all']).optional().describe('Defaults to open'),
       },
     },
-    async ({ owner, repo, state }) => textResult(await listPullRequests({ owner, repo, state }))
+    async ({ owner, repo, state }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await listPullRequests(octokit, { owner, repo, state }));
+    }
   );
 
   server.registerTool(
@@ -155,7 +192,10 @@ export function registerAllTools(server: McpServer): void {
         pullNumber: z.number().int().describe('Pull request number'),
       },
     },
-    async ({ owner, repo, pullNumber }) => textResult(await getPullRequest({ owner, repo, pullNumber }))
+    async ({ owner, repo, pullNumber }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await getPullRequest(octokit, { owner, repo, pullNumber }));
+    }
   );
 
   server.registerTool(
@@ -169,7 +209,9 @@ export function registerAllTools(server: McpServer): void {
         mergeMethod: z.enum(['merge', 'squash', 'rebase']).optional().describe('Defaults to merge'),
       },
     },
-    async ({ owner, repo, pullNumber, mergeMethod }) =>
-      textResult(await mergePullRequest({ owner, repo, pullNumber, mergeMethod }))
+    async ({ owner, repo, pullNumber, mergeMethod }, extra) => {
+      const octokit = await octokitFromExtra(extra);
+      return textResult(await mergePullRequest(octokit, { owner, repo, pullNumber, mergeMethod }));
+    }
   );
 }

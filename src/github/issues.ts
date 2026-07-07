@@ -1,13 +1,15 @@
-import { getOctokit } from './client.js';
+import type { Octokit } from 'octokit';
 
-export async function createIssue(params: {
-  owner: string;
-  repo: string;
-  title: string;
-  body?: string;
-  labels?: string[];
-}): Promise<{ number: number; url: string }> {
-  const octokit = getOctokit();
+export async function createIssue(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    title: string;
+    body?: string;
+    labels?: string[];
+  }
+): Promise<{ number: number; url: string }> {
   const { data } = await octokit.rest.issues.create({
     owner: params.owner,
     repo: params.repo,
@@ -18,12 +20,14 @@ export async function createIssue(params: {
   return { number: data.number, url: data.html_url };
 }
 
-export async function listIssues(params: {
-  owner: string;
-  repo: string;
-  state?: 'open' | 'closed' | 'all';
-}): Promise<Array<{ number: number; title: string; state: string; url: string }>> {
-  const octokit = getOctokit();
+export async function listIssues(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    state?: 'open' | 'closed' | 'all';
+  }
+): Promise<Array<{ number: number; title: string; state: string; url: string }>> {
   const { data } = await octokit.rest.issues.listForRepo({
     owner: params.owner,
     repo: params.repo,
@@ -39,12 +43,14 @@ export async function listIssues(params: {
     }));
 }
 
-export async function getIssue(params: {
-  owner: string;
-  repo: string;
-  issueNumber: number;
-}): Promise<{ number: number; title: string; state: string; body: string | null; url: string }> {
-  const octokit = getOctokit();
+export async function getIssue(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    issueNumber: number;
+  }
+): Promise<{ number: number; title: string; state: string; body: string | null; url: string }> {
   const { data } = await octokit.rest.issues.get({
     owner: params.owner,
     repo: params.repo,
@@ -59,13 +65,15 @@ export async function getIssue(params: {
   };
 }
 
-export async function createIssueComment(params: {
-  owner: string;
-  repo: string;
-  issueNumber: number;
-  body: string;
-}): Promise<{ url: string }> {
-  const octokit = getOctokit();
+export async function createIssueComment(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    issueNumber: number;
+    body: string;
+  }
+): Promise<{ url: string }> {
   const { data } = await octokit.rest.issues.createComment({
     owner: params.owner,
     repo: params.repo,

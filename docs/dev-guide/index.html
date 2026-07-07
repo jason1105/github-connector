@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>github-connector :: dev-guide // OAuth_ARCHITECTURE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="site-header">
+  <div class="header-grid">
+    <div class="logo-block">
+      <div class="logo-glyph">⬡</div>
+      <div class="logo-text">
+        <span class="logo-main">GITHUB<span class="accent">::</span>CONNECTOR</span>
+        <span class="logo-sub">DEV_GUIDE // v1.1.0-oauth</span>
+      </div>
+    </div>
+    <div class="status-strip">
+      <span class="status-dot ok"></span> MCP_SERVER <span class="status-val">ONLINE</span>
+      <span class="sep">/</span>
+      <span class="status-dot warn"></span> OAUTH_LAYER <span class="status-val">DESIGN_PHASE</span>
+      <span class="sep">/</span>
+      <span class="clock" id="clock">00:00:00</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ NAV ============ -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-target="panel-static">01 // STATIC_STRUCTURE</button>
+  <button class="tab-btn" data-target="panel-dynamic">02 // SEQUENCE_FLOW</button>
+  <button class="tab-btn" data-target="panel-manual">03 // USER_MANUAL</button>
+</nav>
+
+<main class="viewport">
+
+  <!-- ============================================================ -->
+  <!-- PANEL 1: STATIC STRUCTURE DIAGRAM                             -->
+  <!-- ============================================================ -->
+  <section id="panel-static" class="panel active">
+    <div class="panel-head">
+      <h1><span class="bracket">[</span>静态结构图<span class="bracket">]</span> Component &amp; Module Topology</h1>
+      <p class="panel-desc">多用户 GitHub OAuth 方案下的模块关系。MCP Server 同时扮演两个角色：<strong>对 ChatGPT 是授权服务器（Authorization Server）</strong>，<strong>对 GitHub 是 OAuth 客户端（Client）</strong>。Token Store 为待定组件，具体实现（持久化 vs 无状态编码）尚在设计讨论中，此处以抽象模块呈现。</p>
+    </div>
+
+    <div class="diagram-frame">
+      <div class="frame-label">FIG.01 — STATIC_STRUCTURE.svg</div>
+      <svg id="static-svg" viewBox="0 0 1240 860" xmlns="http://www.w3.org/2000/svg" class="uml-svg">
+        <defs>
+          <marker id="arrow-cyan" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8,3 L0,6 Z" fill="var(--cyan)"/>
+          </marker>
+          <marker id="arrow-magenta" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8,3 L0,6 Z" fill="var(--magenta)"/>
+          </marker>
+          <marker id="diamond-hollow" markerWidth="14" markerHeight="10" refX="12" refY="5" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,5 L6,0 L12,5 L6,10 Z" fill="var(--bg-panel)" stroke="var(--cyan-dim)" stroke-width="1"/>
+          </marker>
+        </defs>
+
+        <!-- ===== ZONE LABELS ===== -->
+        <text x="30" y="34" class="zone-label">ZONE :: EXTERNAL ACTORS</text>
+        <text x="30" y="230" class="zone-label">ZONE :: MCP_SERVER (this repo)</text>
+        <text x="30" y="700" class="zone-label">ZONE :: EXTERNAL PROVIDER</text>
+
+        <rect x="16" y="10" width="1208" height="180" class="zone-box zone-external"/>
+        <rect x="16" y="206" width="1208" height="470" class="zone-box zone-internal"/>
+        <rect x="16" y="676" width="1208" height="170" class="zone-box zone-external"/>
+
+        <!-- ===== EXTERNAL ACTORS ===== -->
+        <g class="node node-actor" transform="translate(90,60)">
+          <rect width="220" height="90" rx="4"/>
+          <text x="110" y="34" class="node-title">ChatGPT</text>
+          <text x="110" y="54" class="node-sub">Custom Connector</text>
+          <text x="110" y="72" class="node-tag">«oauth client»</text>
+        </g>
+
+        <g class="node node-actor" transform="translate(930,60)">
+          <rect width="220" height="90" rx="4"/>
+          <text x="110" y="34" class="node-title">最终用户</text>
+          <text x="110" y="54" class="node-sub">GitHub Account Owner</text>
+          <text x="110" y="72" class="node-tag">«human»</text>
+        </g>
+
+        <!-- ===== MCP SERVER INTERNAL MODULES ===== -->
+        <g class="node node-endpoint" transform="translate(60,260)">
+          <rect width="250" height="150" rx="4"/>
+          <text x="125" y="28" class="node-title">api/server.ts</text>
+          <text x="125" y="48" class="node-sub">Vercel entry point</text>
+          <line x1="14" y1="60" x2="236" y2="60" class="node-divider"/>
+          <text x="24" y="80" class="node-method">/mcp (existing)</text>
+          <text x="24" y="100" class="node-method">/authorize →</text>
+          <text x="24" y="120" class="node-method">/callback →</text>
+          <text x="24" y="140" class="node-method">/token →</text>
+        </g>
+
+        <g class="node node-oauth" transform="translate(390,260)">
+          <rect width="240" height="150" rx="4"/>
+          <text x="120" y="28" class="node-title">src/oauth/</text>
+          <text x="120" y="48" class="node-sub">authorization-server.ts</text>
+          <line x1="14" y1="60" x2="226" y2="60" class="node-divider"/>
+          <text x="24" y="80" class="node-method">+ handleAuthorize()</text>
+          <text x="24" y="100" class="node-method">+ handleCallback()</text>
+          <text x="24" y="120" class="node-method">+ issueToken()</text>
+          <text x="24" y="140" class="node-method">+ validateToken()</text>
+        </g>
+
+        <g class="node node-oauth" transform="translate(700,260)">
+          <rect width="240" height="150" rx="4"/>
+          <text x="120" y="28" class="node-title">src/oauth/</text>
+          <text x="120" y="48" class="node-sub">github-client.ts</text>
+          <line x1="14" y1="60" x2="226" y2="60" class="node-divider"/>
+          <text x="24" y="80" class="node-method">+ buildAuthorizeUrl()</text>
+          <text x="24" y="100" class="node-method">+ exchangeCode()</text>
+          <text x="24" y="120" class="node-method">«client_id/secret»</text>
+        </g>
+
+        <g class="node node-store" transform="translate(990,260)">
+          <rect width="190" height="150" rx="4" stroke-dasharray="6,4"/>
+          <text x="95" y="28" class="node-title">Token Store</text>
+          <text x="95" y="48" class="node-sub">«TBD — 待定»</text>
+          <line x1="14" y1="60" x2="176" y2="60" class="node-divider"/>
+          <text x="95" y="82" class="node-tag-center">KV / DB</text>
+          <text x="95" y="100" class="node-tag-center">— 或 —</text>
+          <text x="95" y="118" class="node-tag-center">无状态编码 token</text>
+        </g>
+
+        <g class="node node-metadata" transform="translate(60,470)">
+          <rect width="250" height="130" rx="4"/>
+          <text x="125" y="28" class="node-title">.well-known/*</text>
+          <text x="125" y="48" class="node-sub">静态元数据端点</text>
+          <line x1="14" y1="60" x2="236" y2="60" class="node-divider"/>
+          <text x="24" y="80" class="node-method">oauth-protected-resource</text>
+          <text x="24" y="100" class="node-method">oauth-authorization-server</text>
+        </g>
+
+        <g class="node node-existing" transform="translate(390,470)">
+          <rect width="240" height="130" rx="4"/>
+          <text x="120" y="28" class="node-title">src/auth.ts</text>
+          <text x="120" y="48" class="node-sub">既有：shared-secret 校验</text>
+          <line x1="14" y1="60" x2="226" y2="60" class="node-divider"/>
+          <text x="24" y="80" class="node-method">checkConnectorSecret()</text>
+          <text x="24" y="100" class="node-method-fade">« 被 OAuth 逐步取代 »</text>
+        </g>
+
+        <g class="node node-existing" transform="translate(700,470)">
+          <rect width="240" height="130" rx="4"/>
+          <text x="120" y="28" class="node-title">src/github/*.ts</text>
+          <text x="120" y="48" class="node-sub">既有：11 个 GitHub 工具</text>
+          <line x1="14" y1="60" x2="226" y2="60" class="node-divider"/>
+          <text x="24" y="80" class="node-method">getOctokit(token)</text>
+          <text x="24" y="100" class="node-method-fade">« token 来源从 PAT 变为</text>
+          <text x="24" y="116" class="node-method-fade">   per-user OAuth token »</text>
+        </g>
+
+        <g class="node node-existing" transform="translate(990,470)">
+          <rect width="190" height="130" rx="4"/>
+          <text x="95" y="28" class="node-title">src/tools/</text>
+          <text x="95" y="48" class="node-sub">register.ts</text>
+          <line x1="14" y1="60" x2="176" y2="60" class="node-divider"/>
+          <text x="95" y="82" class="node-tag-center">11 registerTool()</text>
+          <text x="95" y="100" class="node-tag-center">调用 github/*</text>
+        </g>
+
+        <!-- ===== EXTERNAL PROVIDER ===== -->
+        <g class="node node-github" transform="translate(480,720)">
+          <rect width="260" height="90" rx="4"/>
+          <text x="130" y="34" class="node-title">GitHub OAuth App</text>
+          <text x="130" y="56" class="node-sub">github.com/login/oauth/*</text>
+          <text x="130" y="74" class="node-tag">«oauth provider»</text>
+        </g>
+
+        <!-- ===== RELATIONSHIPS ===== -->
+        <!-- ChatGPT --> api/server.ts (dependency, dashed arrow) -->
+        <path d="M175,150 L175,258" class="rel dependency" marker-end="url(#arrow-cyan)"/>
+        <text x="175" y="185" class="rel-label">HTTPS</text>
+        <text x="175" y="199" class="rel-label">+ Bearer</text>
+
+        <!-- api/server.ts -> oauth/authorization-server.ts (composition, filled diamond) -->
+        <path d="M310,335 L388,335" class="rel composition" marker-start="url(#diamond-hollow)"/>
+
+        <!-- oauth/authorization-server.ts -> oauth/github-client.ts (association) -->
+        <path d="M630,335 L698,335" class="rel association" marker-end="url(#arrow-cyan)"/>
+
+        <!-- oauth/authorization-server.ts -> Token Store (dependency) -->
+        <path d="M630,290 L988,290" class="rel dependency" marker-end="url(#arrow-cyan)"/>
+
+        <!-- oauth/github-client.ts -> GitHub OAuth App (association, magenta = external call) -->
+        <path d="M940,410 Q975,430 975,545 Q975,600 830,715" class="rel association ext" marker-end="url(#arrow-magenta)"/>
+        <text x="1050" y="632" class="rel-label ext">POST /login/oauth/</text>
+        <text x="1050" y="648" class="rel-label ext">access_token</text>
+
+        <!-- api/server.ts -> .well-known/* (composition) -->
+        <path d="M185,410 L185,468" class="rel composition" marker-start="url(#diamond-hollow)"/>
+
+        <!-- api/server.ts -> src/auth.ts (dependency, fading = legacy) -->
+        <path d="M260,410 Q290,440 460,468" class="rel dependency fade" marker-end="url(#arrow-cyan)"/>
+
+        <!-- oauth/authorization-server.ts -> src/github/*.ts (dependency: issues resolved token) -->
+        <path d="M560,410 Q640,440 770,468" class="rel dependency" marker-end="url(#arrow-cyan)"/>
+
+        <!-- src/github/*.ts -> src/tools/register.ts (association, existing) -->
+        <path d="M940,535 L988,535" class="rel association" marker-end="url(#arrow-cyan)"/>
+
+        <!-- 用户 -> GitHub OAuth App (human interaction, external, routed around the module grid) -->
+        <path d="M1030,150 Q1190,300 1190,470 Q1190,660 745,745" class="rel human" marker-end="url(#arrow-magenta)"/>
+        <text x="930" y="640" class="rel-label ext">浏览器登录 + 授权</text>
+        <text x="930" y="656" class="rel-label ext">（不经过本服务）</text>
+      </svg>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch node-actor"></span> 外部参与者</div>
+      <div class="legend-item"><span class="legend-swatch node-oauth"></span> 新增 OAuth 模块</div>
+      <div class="legend-item"><span class="legend-swatch node-existing"></span> 既有模块（复用/改造）</div>
+      <div class="legend-item"><span class="legend-swatch node-store"></span> 待定组件</div>
+      <div class="legend-item"><span class="legend-line composition"></span> 组合（生命周期绑定）</div>
+      <div class="legend-item"><span class="legend-line dependency"></span> 依赖调用</div>
+      <div class="legend-item"><span class="legend-line association ext"></span> 跨系统调用（HTTPS）</div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- PANEL 2: SEQUENCE / DYNAMIC DIAGRAM                            -->
+  <!-- ============================================================ -->
+  <section id="panel-dynamic" class="panel">
+    <div class="panel-head">
+      <h1><span class="bracket">[</span>动态时序图<span class="bracket">]</span> Authorization Code + PKCE Flow</h1>
+      <p class="panel-desc">标准 OAuth 2.1 授权码流程，双跳（ChatGPT → 本服务 → GitHub），带 PKCE 防篡改。本服务对 ChatGPT 是 Authorization Server，对 GitHub 是 OAuth Client —— 这是本方案的核心设计，也是与现有 shared-secret 方案的根本区别。</p>
+    </div>
+
+    <div class="diagram-frame">
+      <div class="frame-label">FIG.02 — SEQUENCE_FLOW.svg</div>
+      <div class="seq-scroll">
+      <svg id="seq-svg" viewBox="0 0 1300 1720" xmlns="http://www.w3.org/2000/svg" class="uml-svg seq-svg">
+        <defs>
+          <marker id="seq-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8,3 L0,6 Z" fill="var(--cyan)"/>
+          </marker>
+          <marker id="seq-arrow-return" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L8,3 L0,6 Z" fill="var(--magenta)"/>
+          </marker>
+        </defs>
+
+        <!-- LIFELINES -->
+        <!-- Actors: User(90), ChatGPT(320), MCP-Auth(590), GitHub(900), MCP-Token(1180) -->
+        <g class="lifeline-head">
+          <rect x="30" y="10" width="120" height="50" rx="3" class="actor-box actor-human"/>
+          <text x="90" y="40" class="actor-text">用户</text>
+
+          <rect x="260" y="10" width="140" height="50" rx="3" class="actor-box actor-chatgpt"/>
+          <text x="330" y="40" class="actor-text">ChatGPT</text>
+
+          <rect x="510" y="10" width="180" height="50" rx="3" class="actor-box actor-mcp"/>
+          <text x="600" y="34" class="actor-text">MCP_Server</text>
+          <text x="600" y="50" class="actor-text-sub">/authorize /callback</text>
+
+          <rect x="820" y="10" width="180" height="50" rx="3" class="actor-box actor-github"/>
+          <text x="910" y="40" class="actor-text">GitHub OAuth</text>
+
+          <rect x="1090" y="10" width="180" height="50" rx="3" class="actor-box actor-store"/>
+          <text x="1180" y="34" class="actor-text">Token Store</text>
+          <text x="1180" y="50" class="actor-text-sub">«待定»</text>
+        </g>
+
+        <line x1="90" y1="60" x2="90" y2="1680" class="lifeline"/>
+        <line x1="330" y1="60" x2="330" y2="1680" class="lifeline"/>
+        <line x1="600" y1="60" x2="600" y2="1680" class="lifeline"/>
+        <line x1="910" y1="60" x2="910" y2="1680" class="lifeline"/>
+        <line x1="1180" y1="60" x2="1180" y2="1680" class="lifeline"/>
+
+        <!-- STEP GROUP 1: Discovery -->
+        <rect x="60" y="90" width="1160" height="120" class="seq-frame-box"/>
+        <text x="75" y="108" class="seq-frame-label">frame — 元数据发现</text>
+
+        <line x1="330" y1="140" x2="600" y2="140" class="seq-msg" marker-end="url(#seq-arrow)"/>
+        <text x="465" y="132" class="seq-msg-label">GET /.well-known/oauth-protected-resource</text>
+
+        <line x1="600" y1="175" x2="330" y2="175" class="seq-msg return" marker-end="url(#seq-arrow-return)"/>
+        <text x="465" y="167" class="seq-msg-label">200 { authorization_servers: [...] }</text>
+
+        <!-- STEP GROUP 2: User initiates -->
+        <rect x="60" y="230" width="1160" height="90" class="seq-frame-box"/>
+        <text x="75" y="248" class="seq-frame-label">frame — 用户触发授权</text>
+
+        <line x1="90" y1="280" x2="330" y2="280" class="seq-msg human" marker-end="url(#seq-arrow)"/>
+        <text x="210" y="272" class="seq-msg-label">"连接 GitHub Connector"</text>
+
+        <!-- STEP GROUP 3: Authorize redirect -->
+        <rect x="60" y="340" width="1160" height="180" class="seq-frame-box"/>
+        <text x="75" y="358" class="seq-frame-label">frame — 授权跳转 (Authorization Code + PKCE)</text>
+
+        <line x1="330" y1="390" x2="600" y2="390" class="seq-msg" marker-end="url(#seq-arrow)"/>
+        <text x="465" y="382" class="seq-msg-label">GET /authorize?client_id&amp;code_challenge=S256&amp;state</text>
+
+        <rect x="560" y="405" width="80" height="24" rx="2" class="activation"/>
+        <line x1="600" y1="429" x2="600" y2="470" class="seq-msg-self"/>
+        <text x="700" y="445" class="seq-note">生成 GitHub 授权 URL，</text>
+        <text x="700" y="461" class="seq-note">缓存 code_challenge + state</text>
+
+        <line x1="600" y1="490" x2="90" y2="490" class="seq-msg redirect" marker-end="url(#seq-arrow)"/>
+        <text x="330" y="482" class="seq-msg-label">302 Redirect → github.com/login/oauth/authorize</text>
+
+        <!-- STEP GROUP 4: GitHub login -->
+        <rect x="60" y="540" width="1160" height="160" class="seq-frame-box"/>
+        <text x="75" y="558" class="seq-frame-label">frame — 用户在 GitHub 完成登录 + 授权</text>
+
+        <line x1="90" y1="600" x2="910" y2="600" class="seq-msg human" marker-end="url(#seq-arrow)"/>
+        <text x="500" y="592" class="seq-msg-label">浏览器直接访问 GitHub（本服务不经手密码）</text>
+
+        <rect x="870" y="615" width="80" height="24" rx="2" class="activation github"/>
+        <text x="910" y="655" class="seq-note center">用户登录 GitHub 账号</text>
+        <text x="910" y="672" class="seq-note center">并批准 scope 授权</text>
+
+        <!-- STEP GROUP 5: Callback + code exchange -->
+        <rect x="60" y="720" width="1160" height="300" class="seq-frame-box"/>
+        <text x="75" y="738" class="seq-frame-label">frame — 回调 + Code 交换（服务端到服务端，含 client_secret）</text>
+
+        <line x1="910" y1="775" x2="90" y2="775" class="seq-msg redirect" marker-end="url(#seq-arrow)"/>
+        <text x="500" y="767" class="seq-msg-label">302 Redirect → /callback?code&amp;state</text>
+
+        <line x1="90" y1="800" x2="600" y2="800" class="seq-msg human" marker-end="url(#seq-arrow)"/>
+        <text x="345" y="792" class="seq-msg-label">浏览器自动跟随跳转 GET /callback?code&amp;state</text>
+
+        <rect x="560" y="815" width="80" height="140" rx="2" class="activation"/>
+        <line x1="620" y1="840" x2="900" y2="840" class="seq-msg" marker-end="url(#seq-arrow)"/>
+        <text x="760" y="832" class="seq-msg-label">POST /login/oauth/access_token</text>
+        <text x="760" y="854" class="seq-msg-label-sub">{client_id, client_secret, code, code_verifier}</text>
+
+        <line x1="900" y1="875" x2="620" y2="875" class="seq-msg return" marker-end="url(#seq-arrow-return)"/>
+        <text x="760" y="867" class="seq-msg-label">200 { github_access_token }</text>
+
+        <line x1="620" y1="905" x2="1170" y2="905" class="seq-msg" marker-end="url(#seq-arrow)"/>
+        <text x="895" y="897" class="seq-msg-label">persist(user_id, github_token) — 待定存储方式</text>
+
+        <line x1="620" y1="940" x2="330" y2="940" class="seq-msg redirect" marker-end="url(#seq-arrow)"/>
+        <text x="470" y="932" class="seq-msg-label">302 Redirect → ChatGPT + mcp_auth_code</text>
+
+        <!-- STEP GROUP 6: Token exchange with ChatGPT -->
+        <rect x="60" y="1040" width="1160" height="160" class="seq-frame-box"/>
+        <text x="75" y="1058" class="seq-frame-label">frame — ChatGPT 换取 MCP Access Token</text>
+
+        <line x1="330" y1="1100" x2="600" y2="1100" class="seq-msg" marker-end="url(#seq-arrow)"/>
+        <text x="465" y="1092" class="seq-msg-label">POST /token {mcp_auth_code, code_verifier}</text>
+
+        <rect x="560" y="1115" width="80" height="24" rx="2" class="activation"/>
+        <line x1="600" y1="1139" x2="600" y2="1160" class="seq-msg-self"/>
+
+        <line x1="600" y1="1180" x2="330" y2="1180" class="seq-msg return" marker-end="url(#seq-arrow-return)"/>
+        <text x="465" y="1172" class="seq-msg-label">200 { mcp_access_token, expires_in }</text>
+
+        <!-- STEP GROUP 7: Authenticated tool calls -->
+        <rect x="60" y="1220" width="1160" height="320" class="seq-frame-box loop-frame"/>
+        <text x="75" y="1238" class="seq-frame-label">loop — 每次工具调用（例如 create_pull_request）</text>
+
+        <line x1="330" y1="1280" x2="600" y2="1280" class="seq-msg" marker-end="url(#seq-arrow)"/>
+        <text x="465" y="1272" class="seq-msg-label">POST /mcp  Authorization: Bearer &lt;mcp_access_token&gt;</text>
+
+        <rect x="560" y="1295" width="80" height="220" rx="2" class="activation"/>
+        <line x1="620" y1="1320" x2="1170" y2="1320" class="seq-msg" marker-end="url(#seq-arrow)"/>
+        <text x="895" y="1312" class="seq-msg-label">lookup(mcp_access_token) → github_token</text>
+
+        <line x1="1170" y1="1350" x2="620" y2="1350" class="seq-msg return" marker-end="url(#seq-arrow-return)"/>
+        <text x="895" y="1342" class="seq-msg-label">{ github_token }</text>
+
+        <line x1="620" y1="1380" x2="900" y2="1380" class="seq-msg" marker-end="url(#seq-arrow)"/>
+        <text x="760" y="1372" class="seq-msg-label">getOctokit(github_token).pulls.create(...)</text>
+
+        <line x1="900" y1="1450" x2="620" y2="1450" class="seq-msg return" marker-end="url(#seq-arrow-return)"/>
+        <text x="760" y="1442" class="seq-msg-label">201 Created { pull_request }</text>
+
+        <line x1="620" y1="1490" x2="330" y2="1490" class="seq-msg return" marker-end="url(#seq-arrow-return)"/>
+        <text x="465" y="1482" class="seq-msg-label">{ content: [...] } — 以当前用户身份完成</text>
+
+        <!-- Final note -->
+        <text x="650" y="1600" class="seq-final-note">▲ 关键差异：每个用户的操作以「该用户自己的 GitHub 身份」执行，</text>
+        <text x="650" y="1622" class="seq-final-note">而非共享 PAT — 这是多用户 OAuth 相对 v1 单 PAT 方案的根本变化。</text>
+      </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- PANEL 3: USER MANUAL                                          -->
+  <!-- ============================================================ -->
+  <section id="panel-manual" class="panel">
+    <div class="panel-head">
+      <h1><span class="bracket">[</span>用户手册<span class="bracket">]</span> Setup &amp; Operation Guide</h1>
+      <p class="panel-desc">面向最终使用者：如何在 ChatGPT 中配置并使用 github-connector。</p>
+    </div>
+
+    <div class="manual-grid">
+
+      <div class="manual-card">
+        <div class="manual-card-num">01</div>
+        <h3>部署前置条件</h3>
+        <ul class="manual-list">
+          <li>一个 Vercel 账号，已导入本仓库并成功构建（<code>vercel.json</code> 已配置 <code>/mcp</code> 路由重写）</li>
+          <li>一个自定义域名（可选，但推荐 —— 默认 <code>*.vercel.app</code> 生产域名可能受 Deployment Protection 影响）</li>
+          <li><strong>[当前 v1 阶段]</strong> 一个具备 <code>repo</code> / <code>issues</code> / <code>pull_requests</code> 读写权限的 GitHub Fine-grained PAT，设置为 <code>GITHUB_TOKEN</code> 环境变量</li>
+          <li><strong>[OAuth 阶段，规划中]</strong> 一个 GitHub OAuth App（<code>client_id</code> / <code>client_secret</code>），无需再手动生成 PAT</li>
+        </ul>
+      </div>
+
+      <div class="manual-card">
+        <div class="manual-card-num">02</div>
+        <h3>在 ChatGPT 中添加 Connector</h3>
+        <ol class="manual-list ordered">
+          <li>ChatGPT → 设置 → Connectors → 开启 Developer Mode（如未开启）</li>
+          <li>点击「Create」/「新建 App」</li>
+          <li><strong>Server URL</strong> 填入你的部署地址 + <code>/mcp</code>，例如：<br><code class="url-example">https://github-connector.example.com/mcp</code></li>
+          <li><strong>Authentication</strong> 下拉选择：
+            <ul class="manual-sublist">
+              <li><span class="tag tag-current">当前</span> <code>No Auth</code> —— 需服务端设置 <code>ALLOW_NO_AUTH=true</code>（⚠️ 仅限个人验证，任何知道 URL 的人都能操作你的仓库）</li>
+              <li><span class="tag tag-planned">规划中</span> <code>OAuth</code> —— 见本页「静态结构图」「动态时序图」，每个用户用自己的 GitHub 账号登录</li>
+            </ul>
+          </li>
+          <li>勾选「I understand and want to continue」（OpenAI 未审核自定义 MCP server 的风险提示）</li>
+          <li>点击 Create</li>
+        </ol>
+      </div>
+
+      <div class="manual-card manual-card-wide">
+        <div class="manual-card-num">03</div>
+        <h3>可用的 11 个工具</h3>
+        <div class="tool-table">
+          <div class="tool-row tool-head"><span>工具名</span><span>说明</span></div>
+          <div class="tool-row"><span>list_repo_tree</span><span>递归列出仓库文件树</span></div>
+          <div class="tool-row"><span>get_file_content</span><span>读取单个文件内容</span></div>
+          <div class="tool-row"><span>create_or_update_file</span><span>新增 / 修改文件，支持自动建分支</span></div>
+          <div class="tool-row"><span>create_issue</span><span>创建 issue</span></div>
+          <div class="tool-row"><span>list_issues</span><span>列出 issue</span></div>
+          <div class="tool-row"><span>get_issue</span><span>查询单个 issue 详情</span></div>
+          <div class="tool-row"><span>create_issue_comment</span><span>评论 issue 或 PR（共用同一接口）</span></div>
+          <div class="tool-row"><span>create_pull_request</span><span>创建 PR</span></div>
+          <div class="tool-row"><span>list_pull_requests</span><span>列出 PR</span></div>
+          <div class="tool-row"><span>get_pull_request</span><span>查询单个 PR 详情</span></div>
+          <div class="tool-row"><span>merge_pull_request</span><span>合并 PR（merge/squash/rebase）</span></div>
+        </div>
+      </div>
+
+      <div class="manual-card">
+        <div class="manual-card-num">04</div>
+        <h3>示例对话</h3>
+        <div class="terminal-example">
+          <div class="term-line term-user">&gt; 列出 jason1105/github-connector 仓库的文件</div>
+          <div class="term-line term-resp">✓ 调用 list_repo_tree(owner="jason1105", repo="github-connector")</div>
+          <div class="term-line term-user">&gt; 在这个仓库开一个 issue，标题是"文档缺失"</div>
+          <div class="term-line term-resp">✓ 调用 create_issue(...) → issue #12 已创建</div>
+          <div class="term-line term-user">&gt; 把 feature-x 分支合并到 main</div>
+          <div class="term-line term-resp">✓ 调用 merge_pull_request(...) → merged: true</div>
+        </div>
+      </div>
+
+      <div class="manual-card manual-card-wide">
+        <div class="manual-card-num">05</div>
+        <h3>已知限制 &amp; 安全须知</h3>
+        <ul class="manual-list">
+          <li><strong>v1（当前）：</strong>单一共享 <code>GITHUB_TOKEN</code>，所有操作以同一个 GitHub 身份执行 —— 不区分 ChatGPT 使用者</li>
+          <li><strong>v1（当前）：</strong>ChatGPT 连接器 UI 不支持自定义 header，因此暂不能使用 <code>CONNECTOR_SECRET</code> 方案做访问控制；<code>ALLOW_NO_AUTH=true</code> 时任何知道部署 URL 的人都可直接调用全部 11 个工具</li>
+          <li><strong>规划中：</strong>多用户 GitHub OAuth（见本页图示）—— 每个用户认证自己的 GitHub 账号，服务端仅代理 token，不再需要共享 PAT</li>
+          <li>不支持删除文件 / 删除分支等破坏性操作 —— 这是有意为之的边界，不在 v1 或 OAuth 阶段的计划范围内</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <span>github-connector // docs/dev-guide // generated for internal design review</span>
+  <span class="footer-blink">█</span>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,25 +1,51 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import express from 'express';
+import type { Request, Response } from 'express';
+import { mcpAuthRouter } from '@modelcontextprotocol/sdk/server/auth/router.js';
+import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { checkConnectorSecret } from '../src/auth.js';
+import { createAuthorizationServerProvider, handleGithubCallback } from '../src/oauth/authorization-server.js';
 import { registerAllTools } from '../src/tools/register.js';
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  const secretHeader = req.headers['x-connector-secret'];
-  if (!checkConnectorSecret(secretHeader)) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
+const MCP_ISSUER_URL = process.env.MCP_ISSUER_URL!;
 
-  const server = new McpServer({ name: 'github-connector', version: '1.0.0' });
-  registerAllTools(server);
+const provider = createAuthorizationServerProvider();
 
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-  res.on('close', () => {
-    transport.close();
-    server.close();
+const app = express();
+
+app.use(
+  mcpAuthRouter({
+    provider,
+    issuerUrl: new URL(MCP_ISSUER_URL),
+    scopesSupported: ['repo'],
+    resourceServerUrl: new URL(`${MCP_ISSUER_URL}/mcp`),
+  })
+);
+
+app.get('/callback', (req: Request, res: Response) => {
+  handleGithubCallback(req, res).catch((err) => {
+    console.error('GitHub callback error:', err);
+    res.status(500).send('Internal error during GitHub OAuth callback');
   });
+});
 
-  await server.connect(transport);
-  await transport.handleRequest(req, res, req.body);
-}
+app.post(
+  '/mcp',
+  express.json(),
+  requireBearerAuth({ verifier: provider }),
+  async (req: Request, res: Response) => {
+    const server = new McpServer({ name: 'github-connector', version: '1.0.0' });
+    registerAllTools(server);
+
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    res.on('close', () => {
+      transport.close();
+      server.close();
+    });
+
+    await server.connect(transport);
+    await transport.handleRequest(req as any, res, req.body);
+  }
+);
+
+export default app;

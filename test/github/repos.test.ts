@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createFakeOctokit } from '../helpers/fakeOctokit.js';
 
 const mockGetTree = vi.fn();
 const mockGetContent = vi.fn();
@@ -6,21 +7,13 @@ const mockCreateOrUpdateFileContents = vi.fn();
 const mockGetRef = vi.fn();
 const mockCreateRef = vi.fn();
 
-vi.mock('../../src/github/client.js', () => ({
-  getOctokit: () => ({
-    rest: {
-      git: {
-        getTree: mockGetTree,
-        getRef: mockGetRef,
-        createRef: mockCreateRef,
-      },
-      repos: {
-        getContent: mockGetContent,
-        createOrUpdateFileContents: mockCreateOrUpdateFileContents,
-      },
-    },
-  }),
-}));
+const fakeOctokit = createFakeOctokit({
+  getTree: mockGetTree,
+  getContent: mockGetContent,
+  createOrUpdateFileContents: mockCreateOrUpdateFileContents,
+  getRef: mockGetRef,
+  createRef: mockCreateRef,
+});
 
 import { listRepoTree, getFileContent, createOrUpdateFile } from '../../src/github/repos.js';
 
@@ -38,7 +31,7 @@ describe('listRepoTree', () => {
       },
     });
 
-    const result = await listRepoTree({ owner: 'octo', repo: 'hello', ref: 'main' });
+    const result = await listRepoTree(fakeOctokit, { owner: 'octo', repo: 'hello', ref: 'main' });
 
     expect(mockGetTree).toHaveBeenCalledWith(
       expect.objectContaining({ owner: 'octo', repo: 'hello', tree_sha: 'main', recursive: '1' })
@@ -55,7 +48,7 @@ describe('listRepoTree', () => {
   it('defaults ref to HEAD when not provided', async () => {
     mockGetTree.mockResolvedValue({ data: { tree: [], truncated: false } });
 
-    await listRepoTree({ owner: 'octo', repo: 'hello' });
+    await listRepoTree(fakeOctokit, { owner: 'octo', repo: 'hello' });
 
     expect(mockGetTree).toHaveBeenCalledWith(
       expect.objectContaining({ tree_sha: 'HEAD' })
@@ -73,7 +66,7 @@ describe('listRepoTree', () => {
       },
     });
 
-    const result = await listRepoTree({ owner: 'octo', repo: 'hello', path: 'src' });
+    const result = await listRepoTree(fakeOctokit, { owner: 'octo', repo: 'hello', path: 'src' });
 
     expect(result).toEqual({
       entries: [{ path: 'src/index.ts', type: 'blob', sha: 'abc123' }],
@@ -89,7 +82,7 @@ describe('listRepoTree', () => {
       },
     });
 
-    const result = await listRepoTree({ owner: 'octo', repo: 'hello', ref: 'main' });
+    const result = await listRepoTree(fakeOctokit, { owner: 'octo', repo: 'hello', ref: 'main' });
 
     expect(result).toEqual({
       entries: [{ path: 'src/index.ts', type: 'blob', sha: 'abc123' }],
@@ -111,7 +104,7 @@ describe('getFileContent', () => {
       },
     });
 
-    const result = await getFileContent({ owner: 'octo', repo: 'hello', path: 'README.md' });
+    const result = await getFileContent(fakeOctokit, { owner: 'octo', repo: 'hello', path: 'README.md' });
 
     expect(result).toEqual({ path: 'README.md', content: 'hello world', sha: 'shavalue' });
   });
@@ -120,7 +113,7 @@ describe('getFileContent', () => {
     mockGetContent.mockResolvedValue({ data: [{ path: 'src', type: 'dir' }] });
 
     await expect(
-      getFileContent({ owner: 'octo', repo: 'hello', path: 'src' })
+      getFileContent(fakeOctokit, { owner: 'octo', repo: 'hello', path: 'src' })
     ).rejects.toThrow(/directory, not a file/i);
   });
 });
@@ -134,7 +127,7 @@ describe('createOrUpdateFile', () => {
       data: { commit: { sha: 'commitsha' }, content: { sha: 'contentsha' } },
     });
 
-    const result = await createOrUpdateFile({
+    const result = await createOrUpdateFile(fakeOctokit, {
       owner: 'octo',
       repo: 'hello',
       path: 'new.txt',
@@ -164,7 +157,7 @@ describe('createOrUpdateFile', () => {
       data: { commit: { sha: 'commitsha2' }, content: { sha: 'contentsha2' } },
     });
 
-    await createOrUpdateFile({
+    await createOrUpdateFile(fakeOctokit, {
       owner: 'octo',
       repo: 'hello',
       path: 'existing.txt',
@@ -186,7 +179,7 @@ describe('createOrUpdateFile', () => {
       data: { commit: { sha: 'commitsha3' }, content: { sha: 'contentsha3' } },
     });
 
-    await createOrUpdateFile({
+    await createOrUpdateFile(fakeOctokit, {
       owner: 'octo',
       repo: 'hello',
       path: 'feature.txt',
