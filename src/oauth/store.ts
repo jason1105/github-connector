@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import type { OAuthClientInformationFull } from '@modelcontextprotocol/sdk/shared/auth.js';
 
 let client: Redis | undefined;
 
@@ -11,11 +12,6 @@ function getRedis(): Redis {
   }
   client = new Redis({ url, token });
   return client;
-}
-
-export interface McpClient {
-  client_id: string;
-  [key: string]: unknown;
 }
 
 export interface PendingAuthorization {
@@ -44,12 +40,12 @@ export interface GithubTokenData {
   accessToken: string;
 }
 
-export async function getMcpClient(clientId: string): Promise<McpClient | undefined> {
-  const data = await getRedis().get<McpClient>(`mcp:client:${clientId}`);
+export async function getMcpClient(clientId: string): Promise<OAuthClientInformationFull | undefined> {
+  const data = await getRedis().get<OAuthClientInformationFull>(`mcp:client:${clientId}`);
   return data ?? undefined;
 }
 
-export async function saveMcpClient(client: McpClient): Promise<void> {
+export async function saveMcpClient(client: OAuthClientInformationFull): Promise<void> {
   await getRedis().set(`mcp:client:${client.client_id}`, JSON.stringify(client));
 }
 
