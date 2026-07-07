@@ -1,22 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createFakeOctokit } from '../helpers/fakeOctokit.js';
 
 const mockCreate = vi.fn();
 const mockList = vi.fn();
 const mockGet = vi.fn();
 const mockMerge = vi.fn();
 
-vi.mock('../../src/github/client.js', () => ({
-  getOctokit: () => ({
-    rest: {
-      pulls: {
-        create: mockCreate,
-        list: mockList,
-        get: mockGet,
-        merge: mockMerge,
-      },
-    },
-  }),
-}));
+const fakeOctokit = createFakeOctokit({
+  create: mockCreate,
+  list: mockList,
+  get: mockGet,
+  merge: mockMerge,
+});
 
 import { createPullRequest, listPullRequests, getPullRequest, mergePullRequest } from '../../src/github/pulls.js';
 
@@ -26,7 +21,7 @@ describe('createPullRequest', () => {
   it('creates a PR with head/base/title/body', async () => {
     mockCreate.mockResolvedValue({ data: { number: 10, html_url: 'url-pr-10' } });
 
-    const result = await createPullRequest({
+    const result = await createPullRequest(fakeOctokit, {
       owner: 'octo',
       repo: 'hello',
       title: 'My PR',
@@ -55,7 +50,7 @@ describe('listPullRequests', () => {
       data: [{ number: 1, title: 'PR one', state: 'open', html_url: 'url1' }],
     });
 
-    const result = await listPullRequests({ owner: 'octo', repo: 'hello' });
+    const result = await listPullRequests(fakeOctokit, { owner: 'octo', repo: 'hello' });
 
     expect(mockList).toHaveBeenCalledWith(
       expect.objectContaining({ owner: 'octo', repo: 'hello', state: 'open' })
@@ -79,7 +74,7 @@ describe('getPullRequest', () => {
       },
     });
 
-    const result = await getPullRequest({ owner: 'octo', repo: 'hello', pullNumber: 3 });
+    const result = await getPullRequest(fakeOctokit, { owner: 'octo', repo: 'hello', pullNumber: 3 });
 
     expect(mockGet).toHaveBeenCalledWith({ owner: 'octo', repo: 'hello', pull_number: 3 });
     expect(result).toEqual({
@@ -99,7 +94,7 @@ describe('mergePullRequest', () => {
   it('merges a PR with the given merge method, defaulting to merge', async () => {
     mockMerge.mockResolvedValue({ data: { merged: true, sha: 'mergesha', message: 'Pull Request successfully merged' } });
 
-    const result = await mergePullRequest({ owner: 'octo', repo: 'hello', pullNumber: 3 });
+    const result = await mergePullRequest(fakeOctokit, { owner: 'octo', repo: 'hello', pullNumber: 3 });
 
     expect(mockMerge).toHaveBeenCalledWith(
       expect.objectContaining({ owner: 'octo', repo: 'hello', pull_number: 3, merge_method: 'merge' })
@@ -110,7 +105,7 @@ describe('mergePullRequest', () => {
   it('passes through a custom merge_method', async () => {
     mockMerge.mockResolvedValue({ data: { merged: true, sha: 'sha2', message: 'ok' } });
 
-    await mergePullRequest({ owner: 'octo', repo: 'hello', pullNumber: 4, mergeMethod: 'squash' });
+    await mergePullRequest(fakeOctokit, { owner: 'octo', repo: 'hello', pullNumber: 4, mergeMethod: 'squash' });
 
     expect(mockMerge).toHaveBeenCalledWith(
       expect.objectContaining({ merge_method: 'squash' })

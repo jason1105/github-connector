@@ -1,4 +1,4 @@
-import { getOctokit } from './client.js';
+import type { Octokit } from 'octokit';
 
 export interface TreeEntry {
   path: string;
@@ -7,13 +7,15 @@ export interface TreeEntry {
   size?: number;
 }
 
-export async function listRepoTree(params: {
-  owner: string;
-  repo: string;
-  ref?: string;
-  path?: string;
-}): Promise<{ entries: TreeEntry[]; truncated: boolean }> {
-  const octokit = getOctokit();
+export async function listRepoTree(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    ref?: string;
+    path?: string;
+  }
+): Promise<{ entries: TreeEntry[]; truncated: boolean }> {
   const { data } = await octokit.rest.git.getTree({
     owner: params.owner,
     repo: params.repo,
@@ -36,13 +38,15 @@ export async function listRepoTree(params: {
   return { entries: filtered, truncated };
 }
 
-export async function getFileContent(params: {
-  owner: string;
-  repo: string;
-  path: string;
-  ref?: string;
-}): Promise<{ path: string; content: string; sha: string }> {
-  const octokit = getOctokit();
+export async function getFileContent(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    path: string;
+    ref?: string;
+  }
+): Promise<{ path: string; content: string; sha: string }> {
   const { data } = await octokit.rest.repos.getContent({
     owner: params.owner,
     repo: params.repo,
@@ -62,7 +66,7 @@ export async function getFileContent(params: {
 }
 
 async function fetchExistingSha(
-  octokit: ReturnType<typeof getOctokit>,
+  octokit: Octokit,
   owner: string,
   repo: string,
   path: string,
@@ -80,18 +84,19 @@ async function fetchExistingSha(
   }
 }
 
-export async function createOrUpdateFile(params: {
-  owner: string;
-  repo: string;
-  path: string;
-  content: string;
-  message: string;
-  branch: string;
-  createBranch?: boolean;
-  baseBranch?: string;
-}): Promise<{ commitSha: string; contentSha: string }> {
-  const octokit = getOctokit();
-
+export async function createOrUpdateFile(
+  octokit: Octokit,
+  params: {
+    owner: string;
+    repo: string;
+    path: string;
+    content: string;
+    message: string;
+    branch: string;
+    createBranch?: boolean;
+    baseBranch?: string;
+  }
+): Promise<{ commitSha: string; contentSha: string }> {
   if (params.createBranch) {
     const base = params.baseBranch ?? 'main';
     const { data: refData } = await octokit.rest.git.getRef({
