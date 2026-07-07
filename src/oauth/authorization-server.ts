@@ -7,6 +7,11 @@ const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID!;
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET!;
 const MCP_ISSUER_URL = process.env.MCP_ISSUER_URL!;
 
+// Lifetime (seconds) of a minted MCP access token. Shared by the `expires_in`
+// value returned to the client and the absolute `expiresAt` persisted with
+// the token record, so the two never drift apart.
+const MCP_ACCESS_TOKEN_TTL_SECONDS = 86400;
+
 function randomToken(): string {
   return randomBytes(32).toString('hex');
 }
@@ -70,16 +75,18 @@ export function createAuthorizationServerProvider() {
 
       const accessToken = randomToken();
       const refreshToken = randomToken();
+      const expiresAt = Math.floor(Date.now() / 1000) + MCP_ACCESS_TOKEN_TTL_SECONDS;
       await store.saveMcpTokenPair(accessToken, refreshToken, {
         clientId: data.clientId,
         userId: data.userId,
         scopes: ['repo'],
+        expiresAt,
       });
 
       return {
         access_token: accessToken,
         token_type: 'Bearer',
-        expires_in: 86400,
+        expires_in: MCP_ACCESS_TOKEN_TTL_SECONDS,
         refresh_token: refreshToken,
         scope: 'repo',
       };
@@ -93,12 +100,16 @@ export function createAuthorizationServerProvider() {
 
       const accessToken = randomToken();
       const newRefreshToken = randomToken();
-      await store.saveMcpTokenPair(accessToken, newRefreshToken, data);
+      // Compute a fresh expiresAt for the new pair rather than reusing
+      // data.expiresAt — that field reflects the expiry of the *previous*
+      // access token (now consumed/discarded), not the one being minted here.
+      const expiresAt = Math.floor(Date.now() / 1000) + MCP_ACCESS_TOKEN_TTL_SECONDS;
+      await store.saveMcpTokenPair(accessToken, newRefreshToken, { ...data, expiresAt });
 
       return {
         access_token: accessToken,
         token_type: 'Bearer',
-        expires_in: 86400,
+        expires_in: MCP_ACCESS_TOKEN_TTL_SECONDS,
         refresh_token: newRefreshToken,
         scope: data.scopes.join(' '),
       };
@@ -113,6 +124,7 @@ export function createAuthorizationServerProvider() {
         token,
         clientId: data.clientId,
         scopes: data.scopes,
+        expiresAt: data.expiresAt,
         extra: { githubUserId: data.userId },
       };
     },

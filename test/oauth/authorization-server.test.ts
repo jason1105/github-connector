@@ -132,26 +132,46 @@ describe('createAuthorizationServerProvider', () => {
   it('exchangeAuthorizationCode consumes the code and mints an MCP token pair', async () => {
     mockConsumeAuthCode.mockResolvedValue({ clientId: 'abc', userId: '42', codeChallenge: 'challenge-xyz', redirectUri: 'https://chatgpt.com/callback' });
     const provider = createAuthorizationServerProvider();
+    const beforeCall = Date.now() / 1000;
     const result = await provider.exchangeAuthorizationCode({ client_id: 'abc' } as any, 'code-1');
 
     expect(mockConsumeAuthCode).toHaveBeenCalledWith('code-1');
     expect(mockSaveMcpTokenPair).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(String),
-      expect.objectContaining({ clientId: 'abc', userId: '42' })
+      expect.objectContaining({
+        clientId: 'abc',
+        userId: '42',
+        // The stored record must carry a sane absolute expiresAt: numeric
+        // and in the future, matching the 86400s expires_in below. This is
+        // the check that would have caught C1 (missing expiresAt) at the
+        // unit level, instead of only surfacing as a 401 in production.
+        expiresAt: expect.any(Number),
+      })
     );
+    const savedData = mockSaveMcpTokenPair.mock.calls[0][2];
+    expect(savedData.expiresAt).toBeGreaterThan(beforeCall);
     expect(result).toEqual(
       expect.objectContaining({ access_token: expect.any(String), token_type: 'Bearer', expires_in: 86400, refresh_token: expect.any(String) })
     );
   });
 
   it('exchangeRefreshToken consumes the refresh token and mints a fresh pair', async () => {
-    mockConsumeMcpRefreshToken.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'] });
+    mockConsumeMcpRefreshToken.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: Math.floor(Date.now() / 1000) - 100 });
     const provider = createAuthorizationServerProvider();
+    const beforeCall = Date.now() / 1000;
     const result = await provider.exchangeRefreshToken({ client_id: 'abc' } as any, 'refresh-1');
 
     expect(mockConsumeMcpRefreshToken).toHaveBeenCalledWith('refresh-1');
-    expect(mockSaveMcpTokenPair).toHaveBeenCalled();
+    expect(mockSaveMcpTokenPair).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ expiresAt: expect.any(Number) })
+    );
+    // The new pair's expiresAt must be freshly computed (in the future),
+    // not the stale/expired value carried on the consumed refresh record.
+    const savedData = mockSaveMcpTokenPair.mock.calls[0][2];
+    expect(savedData.expiresAt).toBeGreaterThan(beforeCall);
     expect(result).toEqual(
       expect.objectContaining({ access_token: expect.any(String), token_type: 'Bearer', expires_in: 86400 })
     );
@@ -164,7 +184,8 @@ describe('createAuthorizationServerProvider', () => {
   });
 
   it('verifyAccessToken returns AuthInfo with the githubUserId stashed in extra', async () => {
-    mockGetMcpAccessToken.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'] });
+    const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+    mockGetMcpAccessToken.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt });
     const provider = createAuthorizationServerProvider();
     const result = await provider.verifyAccessToken('mcp-token-1');
 
@@ -172,14 +193,41 @@ describe('createAuthorizationServerProvider', () => {
       token: 'mcp-token-1',
       clientId: 'abc',
       scopes: ['repo'],
+      expiresAt,
       extra: { githubUserId: '42' },
     });
+    // Guard against a wrong-direction regression (e.g. expiresAt being 0,
+    // negative, or in the past) that `toEqual` alone wouldn't catch if the
+    // fixture above were ever changed without updating this assertion.
+    expect(result.expiresAt).toBeGreaterThan(Date.now() / 1000);
   });
 
   it('verifyAccessToken throws when the token is not found or expired', async () => {
     mockGetMcpAccessToken.mockResolvedValue(undefined);
     const provider = createAuthorizationServerProvider();
     await expect(provider.verifyAccessToken('missing-token')).rejects.toThrow();
+  });
+
+  it('verifyAccessToken result would pass the SDK bearerAuth expiresAt checks', async () => {
+    mockGetMcpAccessToken.mockResolvedValue({
+      clientId: 'abc',
+      userId: '42',
+      scopes: ['repo'],
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const provider = createAuthorizationServerProvider();
+    const result = await provider.verifyAccessToken('mcp-token-1');
+
+    // Mirrors node_modules/@modelcontextprotocol/sdk's requireBearerAuth checks exactly
+    // (server/auth/middleware/bearerAuth.js) — a token missing/failing this would 401
+    // in production even though verifyAccessToken() itself "succeeded". The test above
+    // only checks the *shape* of the returned object; this test drives that shape
+    // through the SDK's actual acceptance criteria so a regression here fails loudly
+    // instead of silently shipping a 401-on-every-request bug (this is exactly what
+    // happened before expiresAt was added to McpTokenData/verifyAccessToken's return).
+    expect(typeof result.expiresAt).toBe('number');
+    expect(Number.isNaN(result.expiresAt)).toBe(false);
+    expect(result.expiresAt).toBeGreaterThan(Date.now() / 1000);
   });
 });
 

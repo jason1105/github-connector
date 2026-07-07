@@ -34,6 +34,17 @@ export interface McpTokenData {
   clientId: string;
   userId: string;
   scopes: string[];
+  /**
+   * Absolute Unix timestamp (seconds) at which the associated access token
+   * expires. This is meaningful for the `mcp:token:*` (access token) record;
+   * the SDK's requireBearerAuth middleware requires every AuthInfo returned
+   * by verifyAccessToken to carry a numeric, future expiresAt or it 401s the
+   * request. It is also stored on the `mcp:refresh:*` record because both
+   * keys share this same shape, but callers must NOT reuse a stale
+   * refresh-token record's expiresAt when minting a new access token pair —
+   * compute a fresh one at each saveMcpTokenPair call site instead.
+   */
+  expiresAt: number;
 }
 
 export interface GithubTokenData {

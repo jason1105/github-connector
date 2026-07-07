@@ -105,30 +105,31 @@ describe('store', () => {
 
   describe('MCP token pairs', () => {
     it('saves an access token (24h TTL) and refresh token (no TTL)', async () => {
-      await saveMcpTokenPair('access-1', 'refresh-1', { clientId: 'abc', userId: '42', scopes: ['repo'] });
+      const data = { clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 };
+      await saveMcpTokenPair('access-1', 'refresh-1', data);
       expect(mockSet).toHaveBeenCalledWith(
         'mcp:token:access-1',
-        JSON.stringify({ clientId: 'abc', userId: '42', scopes: ['repo'] }),
+        JSON.stringify(data),
         { ex: 86400 }
       );
       expect(mockSet).toHaveBeenCalledWith(
         'mcp:refresh:refresh-1',
-        JSON.stringify({ clientId: 'abc', userId: '42', scopes: ['repo'] })
+        JSON.stringify(data)
       );
     });
 
     it('retrieves an access token entry', async () => {
-      mockGet.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'] });
+      mockGet.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 });
       const result = await getMcpAccessToken('access-1');
       expect(mockGet).toHaveBeenCalledWith('mcp:token:access-1');
-      expect(result).toEqual({ clientId: 'abc', userId: '42', scopes: ['repo'] });
+      expect(result).toEqual({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 });
     });
 
     it('consumes (gets and deletes) a refresh token', async () => {
-      mockGet.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'] });
+      mockGet.mockResolvedValue({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 });
       const result = await consumeMcpRefreshToken('refresh-1');
       expect(mockDel).toHaveBeenCalledWith('mcp:refresh:refresh-1');
-      expect(result).toEqual({ clientId: 'abc', userId: '42', scopes: ['repo'] });
+      expect(result).toEqual({ clientId: 'abc', userId: '42', scopes: ['repo'], expiresAt: 1234567890 });
     });
   });
 
