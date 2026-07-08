@@ -12,12 +12,24 @@
     <span class="mono nav-logo">github-connector</span>
     <div class="nav-links">
       <a href="#tutorial" class="nav-link">文档</a>
-      <a href="#cta" class="nav-cta">开始使用</a>
+      <a href="#cta" class="nav-cta" id="nav-cta">开始使用 <span class="nav-cta-cursor mono" id="nav-cta-cursor" style="display:none;">▍</span></a>
     </div>
   </nav>
 
   <main>
-    <!-- Sections added in later tasks -->
+    <section class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">// github-connector</p>
+        <div class="hero-demo mono" id="hero-demo" data-typed-text="把这个 issue 转成 PR" data-result-text="已创建 PR #128">
+          <span id="hero-cursor" class="hero-cursor">▍</span><span id="hero-typed-line" class="hero-typed"></span>
+          <div id="hero-result-card" class="hero-result">
+            <span class="hero-result-check">✓</span> <span id="hero-result-text"></span>
+          </div>
+        </div>
+        <h1 id="hero-headline" class="h1 hero-headline">在对话里，操作你的仓库。</h1>
+        <p id="hero-subhead" class="body-text hero-subhead">github-connector 让 ChatGPT 直接读写文件、管理 Issue 与 PR——用你自己的 GitHub 账号登录，权限始终在你手中。</p>
+      </div>
+    </section>
   </main>
 
   <script src="script.js"></script>
