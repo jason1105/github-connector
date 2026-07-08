@@ -1,0 +1,150 @@
+/* ===== Design tokens ===== */
+:root {
+  --bg: #FAFAF8;
+  --bg-subtle: #F3F2EE;
+  --text: #1A1A1A;
+  --text-muted: #6B6B6B;
+  --accent: #1E4FD8;
+  --accent-hover: #1A45BE;
+  --border: #E8E7E3;
+  --success: #1F9D57;
+
+  --font-sans: "Inter", "Noto Sans SC", "Source Han Sans SC", -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+  --space-8: 64px;
+  --space-12: 96px;
+  --space-16: 128px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Typography scale (modular, ratio 1.333) ===== */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: none;
+}
+
+.h1 {
+  font-size: 3.157rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+}
+
+.h2 {
+  font-size: 2.369rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.body-text {
+  font-size: 1.125rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== Nav ===== */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  transition: background-color 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo);
+}
+
+/* .surfaced is applied once, shortly after page load (per spec: the nav
+   materializes "as the page loads, not instantly") — see the
+   `nav.classList.add('surfaced')` call in script.js Task 2 Step 4's nav
+   block. It stays applied afterward regardless of scroll position; this
+   class name (not `.scrolled`) reflects that its trigger is load-timing,
+   not scroll position. */
+.site-nav.surfaced {
+  background: rgba(250, 250, 248, 0.8);
+  backdrop-filter: blur(8px);
+  border-bottom-color: var(--border);
+}
+
+.nav-logo {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9375rem;
+}
+
+.nav-link:hover {
+  color: var(--text);
+}
+
+.nav-cta {
+  background: var(--accent);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: background-color 0.2s var(--ease-out-expo);
+}
+
+.nav-cta:hover {
+  background: var(--accent-hover);
+}
