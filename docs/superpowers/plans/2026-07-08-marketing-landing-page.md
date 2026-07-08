@@ -50,7 +50,7 @@ site/
 - Create: `site/index.html`
 
 **Interfaces:**
-- Produces: CSS custom properties on `:root` — `--bg`, `--bg-subtle`, `--text`, `--text-muted`, `--accent`, `--accent-hover`, `--border`, `--success`, `--font-sans` (Chinese+Latin stack), `--font-mono` (JetBrains Mono stack), `--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1)`. Produces a base typographic scale as CSS classes: `.eyebrow`, `.h1`, `.h2`, `.body`, `.mono`.
+- Produces: CSS custom properties on `:root` — `--bg`, `--bg-subtle`, `--text`, `--text-muted`, `--accent`, `--accent-hover`, `--border`, `--success`, `--font-sans` (Chinese+Latin stack), `--font-mono` (JetBrains Mono stack), `--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1)`. Produces a base typographic scale as CSS classes: `.eyebrow`, `.h1`, `.h2`, `.body-text`, `.mono`.
 - Consumes: nothing (this is the foundation).
 
 - [ ] **Step 1: Create the directory and the CSS custom properties**
@@ -198,7 +198,13 @@ Append to `site/style.css`:
   transition: background-color 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo);
 }
 
-.site-nav.scrolled {
+/* .surfaced is applied once, shortly after page load (per spec: the nav
+   materializes "as the page loads, not instantly") — see the
+   `nav.classList.add('surfaced')` call in script.js Task 2 Step 4's nav
+   block. It stays applied afterward regardless of scroll position; this
+   class name (not `.scrolled`) reflects that its trigger is load-timing,
+   not scroll position. */
+.site-nav.surfaced {
   background: rgba(250, 250, 248, 0.8);
   backdrop-filter: blur(8px);
   border-bottom-color: var(--border);
@@ -274,7 +280,7 @@ git commit -m "feat: add design system foundation and page skeleton for landing 
 
 **Interfaces:**
 - Consumes: CSS tokens from Task 1 (`--bg`, `--accent`, `--success`, `--font-mono`, `--ease-out-expo`, `.eyebrow`, `.h1`, `.body-text` classes).
-- Produces: a `revealOnScroll(selector, options)` helper function in `script.js` (top-level function, no ES modules — plain script, so later tasks' additions to the same `script.js` file can call it directly; `options` is an object with an optional `threshold` number, default `0.3`). Produces DOM structure `#hero-demo` (carrying `data-typed-text`/`data-result-text` attributes), `#hero-cursor`, `#hero-typed-line`, `#hero-result-card`, `#hero-result-text`, `#hero-headline`, `#hero-subhead` that later tasks do not touch except Task 5, which sets the `data-typed-text`/`data-result-text` attribute values on its own `index.en.html` copy of `#hero-demo`.
+- Produces: a `revealOnScroll(selector, options)` helper function in `script.js` (top-level function, no ES modules — plain script, so later tasks' additions to the same `script.js` file can call it directly; `options` is an object with an optional `threshold` number, default `0.3`). Produces DOM structure `#hero-demo` (carrying `data-typed-text`/`data-result-text` attributes), `#hero-cursor`, `#hero-typed-line`, `#hero-result-card`, `#hero-result-text`, `#hero-headline`, `#hero-subhead` that later tasks do not touch except Task 5, which sets the `data-typed-text`/`data-result-text` attribute values on its own `index.en.html` copy of `#hero-demo`. Also modifies Task 1's nav markup to add `#nav-cta` and `#nav-cta-cursor` ids (the CTA button and its landed-cursor span) — Task 5 consumes these two ids when inserting the language-switch link into the nav.
 
 - [ ] **Step 1: Add the hero HTML structure**
 
@@ -305,8 +311,27 @@ Append to `site/style.css`:
 ```css
 /* ===== Hero ===== */
 .hero {
+  position: relative;
   padding: var(--space-16) var(--space-4) var(--space-12);
-  border-bottom: 1px solid var(--border);
+}
+
+/* Hairline divider that draws in left-to-right (per spec) once the hero
+   sequence completes, instead of being a static border from page load. */
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s var(--ease-out-expo);
+}
+
+.hero.divider-drawn::after {
+  transform: scaleX(1);
 }
 
 .hero-inner {
@@ -462,10 +487,49 @@ function runHeroSequence() {
     setTimeout(migrateCursor, 600);
   }
 
+  // Real FLIP-style position migration, not a hide/show swap: clone the
+  // hero cursor as a `position: fixed` element, measure both the hero
+  // cursor's and the nav CTA cursor slot's actual screen positions via
+  // getBoundingClientRect(), then transition the clone's transform from
+  // the start position to the end position. This is the spec's core
+  // differentiating mechanic (docs/superpowers/specs/2026-07-08-marketing-landing-page-design.md:157-161)
+  // — "one continuous indigo object the eye follows for the full 5
+  // seconds, resolving into the thing to click" — a hide/show swap does
+  // not satisfy this; the cursor must visibly travel.
   function migrateCursor() {
-    heroCursor.style.display = 'none';
+    const startRect = heroCursor.getBoundingClientRect();
+
+    // Reveal the nav cursor slot in its final (landed) state first, but
+    // invisible, purely so we can measure where the clone needs to land.
     navCta.classList.add('cursor-landed');
     navCtaCursor.style.display = 'inline';
+    navCtaCursor.style.opacity = '0';
+    const endRect = navCtaCursor.getBoundingClientRect();
+
+    const clone = heroCursor.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = startRect.left + 'px';
+    clone.style.top = startRect.top + 'px';
+    clone.style.margin = '0';
+    clone.style.zIndex = '100';
+    clone.style.transition = 'transform 0.4s var(--ease-out-expo)';
+    document.body.appendChild(clone);
+
+    heroCursor.style.visibility = 'hidden';
+
+    const dx = endRect.left - startRect.left;
+    const dy = endRect.top - startRect.top;
+
+    // Force layout so the browser registers the clone's start position
+    // before we set the transform that triggers the transition.
+    void clone.getBoundingClientRect();
+    clone.style.transform = `translate(${dx}px, ${dy}px)`;
+
+    clone.addEventListener('transitionend', () => {
+      clone.remove();
+      navCtaCursor.style.opacity = '1';
+      document.querySelector('.hero').classList.add('divider-drawn');
+    }, { once: true });
   }
 
   setTimeout(typeChar, 400);
@@ -482,32 +546,57 @@ function heroFinalStateImmediate() {
   document.getElementById('hero-cursor').style.display = 'none';
   document.getElementById('nav-cta').classList.add('cursor-landed');
   document.getElementById('nav-cta-cursor').style.display = 'inline';
+  document.querySelector('.hero').classList.add('divider-drawn');
 }
 
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// The hero sequence is wrapped in try/catch so that an unexpected runtime
+// error here (e.g. a DOM id typo introduced in a future edit) cannot abort
+// this entire top-level script and silently prevent the nav-scroll listener
+// and revealOnScroll() below from registering — those must keep working
+// even if the hero animation itself breaks. On any error, fall back to
+// showing the hero's final composed state immediately rather than leaving
+// it stuck at opacity:0.
+try {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-if (prefersReducedMotion) {
-  heroFinalStateImmediate();
-} else {
-  runHeroSequence();
-  // Degradation rule: if hero hasn't started within 800ms (e.g. very slow
-  // device blocking the main thread), snap directly to final state instead
-  // of letting a stuttering partial animation play.
-  const heroStartCheck = setTimeout(() => {
-    const typedLine = document.getElementById('hero-typed-line');
-    if (typedLine.textContent.length === 0) {
-      heroFinalStateImmediate();
-    }
-  }, 800);
+  if (prefersReducedMotion) {
+    heroFinalStateImmediate();
+  } else {
+    runHeroSequence();
+    // Degradation rule: if hero hasn't started within 800ms (e.g. very slow
+    // device blocking the main thread), snap directly to final state instead
+    // of letting a stuttering partial animation play.
+    setTimeout(() => {
+      const typedLine = document.getElementById('hero-typed-line');
+      if (typedLine.textContent.length === 0) {
+        heroFinalStateImmediate();
+      }
+    }, 800);
+  }
+} catch (err) {
+  console.error('Hero sequence failed, falling back to final state:', err);
+  try {
+    heroFinalStateImmediate();
+  } catch (fallbackErr) {
+    console.error('Hero fallback also failed:', fallbackErr);
+  }
 }
 
-// ===== Nav scroll state =====
+// ===== Nav surfacing =====
+// Per spec, the nav's blur/hairline border must materialize "as the page
+// loads, not instantly" — it must NOT wait for the user to scroll (a
+// visitor who never scrolls should still see it appear shortly after
+// load). It also stays surfaced permanently once scrolled past the top,
+// so it doesn't flicker back to transparent if the user scrolls back up.
 const nav = document.querySelector('.site-nav');
+
+setTimeout(() => {
+  nav.classList.add('surfaced');
+}, 250);
+
 window.addEventListener('scroll', () => {
   if (window.scrollY > 10) {
-    nav.classList.add('scrolled');
-  } else {
-    nav.classList.remove('scrolled');
+    nav.classList.add('surfaced');
   }
 }, { passive: true });
 
@@ -549,9 +638,11 @@ Open `http://localhost:8935/index.html` in a browser. Verify, by watching the pa
 - It types `把这个 issue 转成 PR` character by character
 - After a pause, a small card with `✓ 已创建 PR #128` fades up
 - The headline and subhead then fade/rise in
-- The cursor disappears from the hero and a blinking cursor appears inside the nav's `开始使用` button
+- The hero cursor visibly **travels** from its hero position to the nav CTA button — a smooth position slide, not an instant disappear/reappear — and a blinking cursor is left behind inside the nav's `开始使用` button once it lands
+- Once the cursor lands, the hairline divider beneath the hero draws in from left to right (it should be invisible/zero-width before this point, not present from page load)
+- Without scrolling at all, the nav bar's translucent/blurred background and bottom hairline appear on their own shortly (~250ms) after page load — do not scroll to trigger this; it must materialize even if the visitor never scrolls
 
-Also test the reduced-motion path: in Chrome DevTools, open the Rendering tab, set "Emulate CSS media feature prefers-reduced-motion" to `reduce`, reload the page, and confirm the hero shows its final state immediately with no animation.
+Also test the reduced-motion path: in Chrome DevTools, open the Rendering tab, set "Emulate CSS media feature prefers-reduced-motion" to `reduce`, reload the page, and confirm the hero shows its final state immediately (typed text, result card, headline, landed nav cursor, and the drawn-in divider all present at once) with no animation played.
 
 Stop the server once verified.
 
@@ -656,6 +747,7 @@ Modify `site/index.html`, adding immediately after the `.diff-section`'s closing
             <span class="tool-label">合并 PR</span>
           </div>
         </div>
+        <p class="tools-caption body-text">创建、评论、关闭 Issue——和你在 GitHub 网页上做的一样，只是现在你只需要说一句话。</p>
       </div>
     </section>
 ```
@@ -731,6 +823,11 @@ Append to `site/style.css`:
   padding-left: var(--space-4);
 }
 
+.tools-caption {
+  margin-top: var(--space-6);
+  padding-left: var(--space-4);
+}
+
 .tools-rule {
   position: absolute;
   left: 4px;
@@ -746,6 +843,17 @@ Append to `site/style.css`:
   align-items: center;
   gap: var(--space-2);
   padding: 10px 0;
+}
+
+/* Subtle grouping (per spec: "may be grouped subtly by category") — the
+   first item of the "issue" group and the first item of the "pr" group
+   each get a bit of extra top spacing via the adjacent-sibling combinator,
+   reading as a soft break between the repo/issue/pr clusters without a
+   hard card boundary. This is the actual (previously unused) purpose of
+   each .tool-item's data-group attribute set in this task's HTML. */
+.tool-item[data-group="repo"] + .tool-item[data-group="issue"],
+.tool-item[data-group="issue"] + .tool-item[data-group="pr"] {
+  margin-top: var(--space-2);
 }
 
 .tool-dot {
@@ -795,7 +903,9 @@ cd site && python3 -m http.server 8935
 Open `http://localhost:8935/index.html`. Scroll down past the hero. Verify:
 - The diff section shows two aligned columns, left with muted strikethrough text, right with indigo text, both in monospace
 - The tools section shows 11 items along a vertical line; as you scroll each into view, its dot fills solid indigo and scales up slightly, and its label darkens from gray to near-black
+- A slightly larger gap is visible between the 3rd/4th items (repo→issue boundary) and between the 7th/8th items (issue→pr boundary), reading as 3 soft sub-groups without hard card borders
 - Scrolling back up does not un-reveal items already revealed
+- Beneath the 11 items, a caption line reads "创建、评论、关闭 Issue——和你在 GitHub 网页上做的一样，只是现在你只需要说一句话。"
 
 Stop the server once verified.
 
@@ -839,24 +949,41 @@ Modify `site/index.html`, adding after the `.tools-section`'s closing `</section
 
 Modify `site/index.html`, adding after the `.security-section`'s closing `</section>`:
 
+Each step includes a small inline SVG icon (a simplified illustrative
+diagram, per spec — not a raw screenshot), styled to use only `--accent`/
+`--text-muted` strokes so it matches the page's restrained palette exactly:
+
 ```html
     <section class="tutorial-section" id="tutorial">
       <div class="tutorial-inner">
         <p class="eyebrow">// 三步完成接入</p>
         <div class="tutorial-steps">
-          <div class="tutorial-relay-line"></div>
+          <div class="tutorial-relay-line"><div class="tutorial-relay-fill"></div></div>
           <div class="tutorial-step" data-step="1">
             <span class="step-number">1</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M9 7V3m6 4V3M6 10h12a1 1 0 011 1v3a5 5 0 01-5 5h-4a5 5 0 01-5-5v-3a1 1 0 011-1z"/>
+              <path d="M9 19v2m6-2v2"/>
+            </svg>
             <h3 class="step-title">添加连接器</h3>
             <p class="step-desc">ChatGPT → 设置 → Connectors → 新建 App，Server URL 填 <code class="mono">https://github-connector.jason1105.uk/mcp</code>。</p>
           </div>
           <div class="tutorial-step" data-step="2">
             <span class="step-number">2</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="9" rx="1.5"/>
+              <path d="M8 11V8a4 4 0 018 0v3"/>
+              <circle cx="12" cy="15" r="1.25" fill="currentColor" stroke="none"/>
+            </svg>
             <h3 class="step-title">用 GitHub 登录并授权</h3>
             <p class="step-desc">Authentication 选择 <strong>OAuth</strong>；点击 Create 后会跳转到 GitHub 登录页，用你自己的账号登录并授权。</p>
           </div>
           <div class="tutorial-step" data-step="3">
             <span class="step-number">3</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M4 5h16a1 1 0 011 1v9a1 1 0 01-1 1H10l-4 4v-4H4a1 1 0 01-1-1V6a1 1 0 011-1z"/>
+              <path d="M8 10h8M8 13h5"/>
+            </svg>
             <h3 class="step-title">直接在对话里下指令</h3>
             <p class="step-desc">例如"列出这个仓库的文件"或"把这个 issue 转成 PR"，ChatGPT 会调用 github-connector 完成操作。</p>
           </div>
@@ -948,6 +1075,12 @@ Append to `site/style.css`:
   }
 }
 
+/* Two stacked lines: a static gray track (always visible, shows the full
+   path) and an indigo fill line that grows left-to-right via scaleX — this
+   is the actual "relay baton" motion the spec describes, driven by a single
+   timed animation rather than per-step independent triggers (which, on the
+   desktop 3-column grid, would fire near-simultaneously and never look
+   sequential). */
 .tutorial-relay-line {
   position: absolute;
   top: 15px;
@@ -956,6 +1089,22 @@ Append to `site/style.css`:
   height: 1px;
   background: var(--border);
   z-index: 0;
+}
+
+.tutorial-relay-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.2s var(--ease-out-expo);
+}
+
+.tutorial-relay-line.running .tutorial-relay-fill {
+  transform: scaleX(1);
 }
 
 @media (max-width: 720px) {
@@ -987,6 +1136,19 @@ Append to `site/style.css`:
   background: var(--accent);
   border-color: var(--accent);
   color: white;
+}
+
+.step-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  transition: color 0.3s var(--ease-out-expo);
+}
+
+.tutorial-step.visible .step-icon {
+  color: var(--accent);
 }
 
 .step-title {
@@ -1046,11 +1208,64 @@ Append to `site/style.css`:
 
 - [ ] **Step 5: Wire up the tutorial relay-line reveal in `script.js`**
 
+The relay effect must look sequential — the fill line grows once, and each
+step lights up in turn as the line visually reaches it. A per-step
+`IntersectionObserver` (one trigger per step) does not produce this: on the
+desktop 3-column grid all three steps enter the viewport within the same
+scroll frame and would light up almost simultaneously. Instead, use a
+single `IntersectionObserver` on the whole `.tutorial-steps` container to
+detect the one moment the section enters view, then drive the line-fill
+animation and the three steps' lit-up timing with fixed, hand-tuned delays
+that match the CSS fill transition's duration (1.2s, set in Task 4 Step 4's
+CSS on `.tutorial-relay-fill`).
+
 Append to `site/script.js`:
 
 ```javascript
-revealOnScroll('.tutorial-step', { threshold: 0.5 });
+function runTutorialRelay() {
+  const relayLine = document.querySelector('.tutorial-relay-line');
+  const steps = document.querySelectorAll('.tutorial-step');
+
+  relayLine.classList.add('running');
+
+  // Stagger each step's "lit" moment to roughly track where a line growing
+  // over 1.2s (the CSS transition duration) would visually be when it
+  // passes that step's position (steps sit at roughly 0%, 50%, 100% along
+  // the line).
+  const delays = [0, 500, 1000];
+  steps.forEach((step, i) => {
+    setTimeout(() => step.classList.add('visible'), delays[i] || 0);
+  });
+}
+
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('.tutorial-step').forEach(step => step.classList.add('visible'));
+  const relayLine = document.querySelector('.tutorial-relay-line');
+  if (relayLine) relayLine.classList.add('running');
+} else {
+  const tutorialSteps = document.querySelector('.tutorial-steps');
+  if (tutorialSteps) {
+    let relayStarted = false;
+    const tutorialObserver = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !relayStarted) {
+          relayStarted = true;
+          runTutorialRelay();
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.4 });
+    tutorialObserver.observe(tutorialSteps);
+  }
+}
 ```
+
+Do not also call the generic `revealOnScroll('.tutorial-step', ...)` helper
+for this section — it would double-drive the `.visible` class with
+conflicting timing. This section intentionally uses its own dedicated
+sequencing logic instead of the shared helper, because the shared helper's
+one-observer-per-element model cannot express "in order, with a deliberate
+delay between each."
 
 - [ ] **Step 6: Verify visually**
 
@@ -1061,10 +1276,11 @@ cd site && python3 -m http.server 8935
 
 Open `http://localhost:8935/index.html`, scroll through the full page. Verify:
 - Security section shows a centered card; hovering it shows a subtle indigo border outline and a very slight scale increase (no shadow/lift)
-- Tutorial section shows 3 numbered steps; scrolling them into view fills each number circle solid indigo
+- Tutorial section: scrolling it into view triggers an indigo line to visibly grow left-to-right over the gray track line (not appear instantly), and each step's number circle fills solid indigo one at a time, in order (1, then 2, then 3, not all three at once)
 - The tutorial step 1 description contains the real URL `https://github-connector.jason1105.uk/mcp`
 - Closing CTA shows a headline, a solid indigo button, and the endpoint URL below it in monospace
 - Clicking the nav's `文档` link and the `开始使用` nav button both scroll smoothly to the correct sections
+- With `prefers-reduced-motion: reduce` emulated (Chrome DevTools Rendering tab), the tutorial section shows the fully-filled line and all 3 steps lit up immediately, no animation
 
 Stop the server once verified.
 
@@ -1217,6 +1433,7 @@ Create `site/index.en.html` by translating every piece of visible Chinese copy f
             <span class="tool-label">Merge a pull request</span>
           </div>
         </div>
+        <p class="tools-caption body-text">Create, comment on, and close issues — exactly like you would on GitHub's own site, except now it only takes a sentence.</p>
       </div>
     </section>
 
@@ -1234,19 +1451,32 @@ Create `site/index.en.html` by translating every piece of visible Chinese copy f
       <div class="tutorial-inner">
         <p class="eyebrow">// Connect in three steps</p>
         <div class="tutorial-steps">
-          <div class="tutorial-relay-line"></div>
+          <div class="tutorial-relay-line"><div class="tutorial-relay-fill"></div></div>
           <div class="tutorial-step" data-step="1">
             <span class="step-number">1</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M9 7V3m6 4V3M6 10h12a1 1 0 011 1v3a5 5 0 01-5 5h-4a5 5 0 01-5-5v-3a1 1 0 011-1z"/>
+              <path d="M9 19v2m6-2v2"/>
+            </svg>
             <h3 class="step-title">Add the connector</h3>
             <p class="step-desc">ChatGPT → Settings → Connectors → Create new app. Set the Server URL to <code class="mono">https://github-connector.jason1105.uk/mcp</code>.</p>
           </div>
           <div class="tutorial-step" data-step="2">
             <span class="step-number">2</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="9" rx="1.5"/>
+              <path d="M8 11V8a4 4 0 018 0v3"/>
+              <circle cx="12" cy="15" r="1.25" fill="currentColor" stroke="none"/>
+            </svg>
             <h3 class="step-title">Sign in with GitHub and authorize</h3>
             <p class="step-desc">Set Authentication to <strong>OAuth</strong>. After clicking Create, you'll be redirected to GitHub's login page — sign in with your own account and approve access.</p>
           </div>
           <div class="tutorial-step" data-step="3">
             <span class="step-number">3</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M4 5h16a1 1 0 011 1v9a1 1 0 01-1 1H10l-4 4v-4H4a1 1 0 01-1-1V6a1 1 0 011-1z"/>
+              <path d="M8 10h8M8 13h5"/>
+            </svg>
             <h3 class="step-title">Just ask, right in the chat</h3>
             <p class="step-desc">For example, "list the files in this repo" or "turn this issue into a PR" — ChatGPT will call github-connector to do it.</p>
           </div>
