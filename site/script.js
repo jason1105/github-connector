@@ -191,3 +191,51 @@ function revealOnScroll(selector, options = {}) {
 
 // ===== Section reveals =====
 revealOnScroll('.tool-item', { threshold: 0.6 });
+
+// ===== Tutorial relay-line reveal =====
+// Deliberately NOT built on revealOnScroll(): that helper puts one
+// IntersectionObserver per matched element, so on the desktop 3-column
+// grid all three `.tutorial-step` elements cross the viewport threshold
+// within the same scroll frame and would light up almost simultaneously —
+// defeating the sequential "relay" effect this section is designed around.
+// Instead: a single IntersectionObserver on the `.tutorial-steps` container
+// detects the one moment the section enters view, then drives the line-fill
+// animation and the three steps' lit-up timing with fixed, hand-tuned delays
+// timed against the CSS fill transition's duration (1.2s, set on
+// `.tutorial-relay-fill` in style.css).
+function runTutorialRelay() {
+  const relayLine = document.querySelector('.tutorial-relay-line');
+  const steps = document.querySelectorAll('.tutorial-step');
+
+  relayLine.classList.add('running');
+
+  // Stagger each step's "lit" moment to roughly track where a line growing
+  // over 1.2s (the CSS transition duration) would visually be when it
+  // passes that step's position (steps sit at roughly 0%, 50%, 100% along
+  // the line).
+  const delays = [0, 500, 1000];
+  steps.forEach((step, i) => {
+    setTimeout(() => step.classList.add('visible'), delays[i] || 0);
+  });
+}
+
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('.tutorial-step').forEach(step => step.classList.add('visible'));
+  const relayLine = document.querySelector('.tutorial-relay-line');
+  if (relayLine) relayLine.classList.add('running');
+} else {
+  const tutorialSteps = document.querySelector('.tutorial-steps');
+  if (tutorialSteps) {
+    let relayStarted = false;
+    const tutorialObserver = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !relayStarted) {
+          relayStarted = true;
+          runTutorialRelay();
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.4 });
+    tutorialObserver.observe(tutorialSteps);
+  }
+}
