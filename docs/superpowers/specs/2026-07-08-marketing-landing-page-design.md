@@ -251,10 +251,21 @@ superlatives.
 Chinese is the primary/default language, matching the existing
 `README.md`/`README.en.md` split. Implementation: two static HTML files,
 `index.html` (Chinese) and `index.en.html` (English), sharing the same
-`style.css` and `script.js`. A small language-switch link (`中文 | English`)
-in the nav, matching the pattern already established in the README files —
-no client-side i18n framework, no query-param locale switching, just two
-plain files that link to each other.
+`style.css` and `script.js`. No client-side i18n framework, no query-param
+locale switching — just two plain files that link to each other, the same
+underlying approach the README split already uses.
+
+**Nav link presentation deviates slightly from the README's exact format.**
+The README shows both languages simultaneously (`[中文](README.md) |
+[English](README.en.md)`) since either link is meaningful there — a reader
+already on `README.md` might still want to click "中文" to confirm/re-anchor.
+On this page, each nav only shows the *other* language as a single link
+(the Chinese page's nav shows only `English`; the English page's nav shows
+only `中文`) — showing the current page's own language as a clickable link
+would just reload the identical page, a redundant interaction this page's
+animated, single-session experience doesn't benefit from the way a static
+markdown file does. This is an intentional, scoped deviation, not an
+oversight.
 
 ## Technical approach
 
