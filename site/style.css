@@ -254,3 +254,129 @@ body {
 .nav-cta.cursor-landed .nav-cta-cursor {
   animation: blink 1.06s steps(1) infinite;
 }
+
+/* ===== Diff section ===== */
+.diff-section {
+  padding: var(--space-16) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.diff-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.diff-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 720px) {
+  .diff-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.diff-header {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  color: var(--text-muted);
+}
+
+.diff-header-accent {
+  color: var(--accent);
+}
+
+.diff-line {
+  font-size: 0.9375rem;
+  padding: 4px 0;
+}
+
+.diff-line-removed {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.diff-line-added {
+  color: var(--accent);
+}
+
+/* ===== Tools section ===== */
+.tools-section {
+  padding: var(--space-16) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.tools-inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.tools-timeline {
+  position: relative;
+  margin-top: var(--space-6);
+  padding-left: var(--space-4);
+}
+
+.tools-caption {
+  margin-top: var(--space-6);
+  padding-left: var(--space-4);
+}
+
+.tools-rule {
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--border);
+}
+
+.tool-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 0;
+}
+
+/* Subtle grouping (per spec: "may be grouped subtly by category") — the
+   first item of the "issue" group and the first item of the "pr" group
+   each get a bit of extra top spacing via the adjacent-sibling combinator,
+   reading as a soft break between the repo/issue/pr clusters without a
+   hard card boundary. This is the actual (previously unused) purpose of
+   each .tool-item's data-group attribute set in this task's HTML. */
+.tool-item[data-group="repo"] + .tool-item[data-group="issue"],
+.tool-item[data-group="issue"] + .tool-item[data-group="pr"] {
+  margin-top: var(--space-2);
+}
+
+.tool-dot {
+  position: absolute;
+  left: calc(-1 * var(--space-4) + 0px);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  transition: background-color 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo);
+}
+
+.tool-label {
+  color: var(--text-muted);
+  font-size: 1rem;
+  transition: color 0.3s var(--ease-out-expo);
+}
+
+.tool-item.visible .tool-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.15);
+}
+
+.tool-item.visible .tool-label {
+  color: var(--text);
+}

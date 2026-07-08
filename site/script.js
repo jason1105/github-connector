@@ -188,3 +188,6 @@ function revealOnScroll(selector, options = {}) {
 
   elements.forEach(el => observer.observe(el));
 }
+
+// ===== Section reveals =====
+revealOnScroll('.tool-item', { threshold: 0.6 });
