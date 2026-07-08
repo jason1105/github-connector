@@ -24,7 +24,7 @@
     <div class="status-strip">
       <span class="status-dot ok"></span> MCP_SERVER <span class="status-val">ONLINE</span>
       <span class="sep">/</span>
-      <span class="status-dot warn"></span> OAUTH_LAYER <span class="status-val">DESIGN_PHASE</span>
+      <span class="status-dot ok"></span> OAUTH_LAYER <span class="status-val">LIVE</span>
       <span class="sep">/</span>
       <span class="clock" id="clock">00:00:00</span>
     </div>
@@ -46,7 +46,7 @@
   <section id="panel-static" class="panel active">
     <div class="panel-head">
       <h1><span class="bracket">[</span>静态结构图<span class="bracket">]</span> Component &amp; Module Topology</h1>
-      <p class="panel-desc">多用户 GitHub OAuth 方案下的模块关系。MCP Server 同时扮演两个角色：<strong>对 ChatGPT 是授权服务器（Authorization Server）</strong>，<strong>对 GitHub 是 OAuth 客户端（Client）</strong>。Token Store 为待定组件，具体实现（持久化 vs 无状态编码）尚在设计讨论中，此处以抽象模块呈现。</p>
+      <p class="panel-desc">多用户 GitHub OAuth 方案下的模块关系（已上线）。MCP Server 同时扮演两个角色：<strong>对 ChatGPT 是授权服务器（Authorization Server）</strong>，<strong>对 GitHub 是 OAuth 客户端（Client）</strong>。Token Store 已落地为 Upstash Redis（通过 Vercel Marketplace 集成），持久化存储 GitHub token 与 MCP token 对。</p>
     </div>
 
     <div class="diagram-frame">
@@ -122,13 +122,13 @@
         </g>
 
         <g class="node node-store" transform="translate(990,260)">
-          <rect width="190" height="150" rx="4" stroke-dasharray="6,4"/>
+          <rect width="190" height="150" rx="4"/>
           <text x="95" y="28" class="node-title">Token Store</text>
-          <text x="95" y="48" class="node-sub">«TBD — 待定»</text>
+          <text x="95" y="48" class="node-sub">Upstash Redis</text>
           <line x1="14" y1="60" x2="176" y2="60" class="node-divider"/>
-          <text x="95" y="82" class="node-tag-center">KV / DB</text>
-          <text x="95" y="100" class="node-tag-center">— 或 —</text>
-          <text x="95" y="118" class="node-tag-center">无状态编码 token</text>
+          <text x="95" y="82" class="node-tag-center">mcp:client / authcode</text>
+          <text x="95" y="100" class="node-tag-center">mcp:token / refresh</text>
+          <text x="95" y="118" class="node-tag-center">github:token</text>
         </g>
 
         <g class="node node-metadata" transform="translate(60,470)">
@@ -140,23 +140,24 @@
           <text x="24" y="100" class="node-method">oauth-authorization-server</text>
         </g>
 
-        <g class="node node-existing" transform="translate(390,470)">
+        <g class="node node-oauth" transform="translate(390,470)">
           <rect width="240" height="130" rx="4"/>
-          <text x="120" y="28" class="node-title">src/auth.ts</text>
-          <text x="120" y="48" class="node-sub">既有：shared-secret 校验</text>
+          <text x="120" y="28" class="node-title">octokitFromExtra()</text>
+          <text x="120" y="48" class="node-sub">per-request 授权解析</text>
           <line x1="14" y1="60" x2="226" y2="60" class="node-divider"/>
-          <text x="24" y="80" class="node-method">checkConnectorSecret()</text>
-          <text x="24" y="100" class="node-method-fade">« 被 OAuth 逐步取代 »</text>
+          <text x="24" y="80" class="node-method">extra.authInfo.extra</text>
+          <text x="24" y="100" class="node-method">.githubUserId → token</text>
+          <text x="24" y="118" class="node-method-fade">« 旧 src/auth.ts 已删除 »</text>
         </g>
 
         <g class="node node-existing" transform="translate(700,470)">
           <rect width="240" height="130" rx="4"/>
           <text x="120" y="28" class="node-title">src/github/*.ts</text>
-          <text x="120" y="48" class="node-sub">既有：11 个 GitHub 工具</text>
+          <text x="120" y="48" class="node-sub">11 个 GitHub 工具函数</text>
           <line x1="14" y1="60" x2="226" y2="60" class="node-divider"/>
           <text x="24" y="80" class="node-method">getOctokit(token)</text>
-          <text x="24" y="100" class="node-method-fade">« token 来源从 PAT 变为</text>
-          <text x="24" y="116" class="node-method-fade">   per-user OAuth token »</text>
+          <text x="24" y="100" class="node-method">每次调用接收 token 参数</text>
+          <text x="24" y="116" class="node-method-fade">« 不再有共享单例 »</text>
         </g>
 
         <g class="node node-existing" transform="translate(990,470)">
@@ -199,8 +200,8 @@
         <!-- api/server.ts -> .well-known/* (composition) -->
         <path d="M185,410 L185,468" class="rel composition" marker-start="url(#diamond-hollow)"/>
 
-        <!-- api/server.ts -> src/auth.ts (dependency, fading = legacy) -->
-        <path d="M260,410 Q290,440 460,468" class="rel dependency fade" marker-end="url(#arrow-cyan)"/>
+        <!-- src/tools/register.ts -> octokitFromExtra() (dependency: every tool handler resolves its own Octokit first) -->
+        <path d="M990,468 Q700,430 510,468" class="rel dependency" marker-end="url(#arrow-cyan)"/>
 
         <!-- oauth/authorization-server.ts -> src/github/*.ts (dependency: issues resolved token) -->
         <path d="M560,410 Q640,440 770,468" class="rel dependency" marker-end="url(#arrow-cyan)"/>
@@ -219,7 +220,7 @@
       <div class="legend-item"><span class="legend-swatch node-actor"></span> 外部参与者</div>
       <div class="legend-item"><span class="legend-swatch node-oauth"></span> 新增 OAuth 模块</div>
       <div class="legend-item"><span class="legend-swatch node-existing"></span> 既有模块（复用/改造）</div>
-      <div class="legend-item"><span class="legend-swatch node-store"></span> 待定组件</div>
+      <div class="legend-item"><span class="legend-swatch node-store"></span> 持久化存储（Redis）</div>
       <div class="legend-item"><span class="legend-line composition"></span> 组合（生命周期绑定）</div>
       <div class="legend-item"><span class="legend-line dependency"></span> 依赖调用</div>
       <div class="legend-item"><span class="legend-line association ext"></span> 跨系统调用（HTTPS）</div>
@@ -266,7 +267,7 @@
 
           <rect x="1090" y="10" width="180" height="50" rx="3" class="actor-box actor-store"/>
           <text x="1180" y="34" class="actor-text">Token Store</text>
-          <text x="1180" y="50" class="actor-text-sub">«待定»</text>
+          <text x="1180" y="50" class="actor-text-sub">Upstash Redis</text>
         </g>
 
         <line x1="90" y1="60" x2="90" y2="1680" class="lifeline"/>
@@ -337,7 +338,7 @@
         <text x="760" y="867" class="seq-msg-label">200 { github_access_token }</text>
 
         <line x1="620" y1="905" x2="1170" y2="905" class="seq-msg" marker-end="url(#seq-arrow)"/>
-        <text x="895" y="897" class="seq-msg-label">persist(user_id, github_token) — 待定存储方式</text>
+        <text x="895" y="897" class="seq-msg-label">persist(user_id, github_token) — Redis, 无 TTL</text>
 
         <line x1="620" y1="940" x2="330" y2="940" class="seq-msg redirect" marker-end="url(#seq-arrow)"/>
         <text x="470" y="932" class="seq-msg-label">302 Redirect → ChatGPT + mcp_auth_code</text>
@@ -403,8 +404,8 @@
         <ul class="manual-list">
           <li>一个 Vercel 账号，已导入本仓库并成功构建（<code>vercel.json</code> 已配置 <code>/mcp</code> 路由重写）</li>
           <li>一个自定义域名（可选，但推荐 —— 默认 <code>*.vercel.app</code> 生产域名可能受 Deployment Protection 影响）</li>
-          <li><strong>[当前 v1 阶段]</strong> 一个具备 <code>repo</code> / <code>issues</code> / <code>pull_requests</code> 读写权限的 GitHub Fine-grained PAT，设置为 <code>GITHUB_TOKEN</code> 环境变量</li>
-          <li><strong>[OAuth 阶段，规划中]</strong> 一个 GitHub OAuth App（<code>client_id</code> / <code>client_secret</code>），无需再手动生成 PAT</li>
+          <li>一个 GitHub OAuth App（github.com → Settings → Developer settings → OAuth Apps）—— 记下 <code>client_id</code>，生成 <code>client_secret</code>；回调地址填 <code>&lt;部署域名&gt;/callback</code></li>
+          <li>一个 Upstash Redis 实例（通过 Vercel Marketplace 集成添加，自动注入 <code>KV_REST_API_URL</code> / <code>KV_REST_API_TOKEN</code>）</li>
         </ul>
       </div>
 
@@ -415,14 +416,10 @@
           <li>ChatGPT → 设置 → Connectors → 开启 Developer Mode（如未开启）</li>
           <li>点击「Create」/「新建 App」</li>
           <li><strong>Server URL</strong> 填入你的部署地址 + <code>/mcp</code>，例如：<br><code class="url-example">https://github-connector.example.com/mcp</code></li>
-          <li><strong>Authentication</strong> 下拉选择：
-            <ul class="manual-sublist">
-              <li><span class="tag tag-current">当前</span> <code>No Auth</code> —— 需服务端设置 <code>ALLOW_NO_AUTH=true</code>（⚠️ 仅限个人验证，任何知道 URL 的人都能操作你的仓库）</li>
-              <li><span class="tag tag-planned">规划中</span> <code>OAuth</code> —— 见本页「静态结构图」「动态时序图」，每个用户用自己的 GitHub 账号登录</li>
-            </ul>
-          </li>
+          <li><strong>Authentication</strong> 下拉选择 <code>OAuth</code>（唯一支持的模式；ChatGPT 通过服务端的 <code>.well-known</code> 元数据自动发现授权端点，无需手动填写）</li>
+          <li>Client registration 选 <strong>Dynamic Client Registration (DCR)</strong>（服务端已实现 <code>POST /register</code>，无需手动创建 client）</li>
           <li>勾选「I understand and want to continue」（OpenAI 未审核自定义 MCP server 的风险提示）</li>
-          <li>点击 Create</li>
+          <li>点击 Create，随后会跳转到 GitHub 登录/授权页 —— 每个使用者用自己的 GitHub 账号登录，服务端不代持共享密钥</li>
         </ol>
       </div>
 
@@ -462,10 +459,11 @@
         <div class="manual-card-num">05</div>
         <h3>已知限制 &amp; 安全须知</h3>
         <ul class="manual-list">
-          <li><strong>v1（当前）：</strong>单一共享 <code>GITHUB_TOKEN</code>，所有操作以同一个 GitHub 身份执行 —— 不区分 ChatGPT 使用者</li>
-          <li><strong>v1（当前）：</strong>ChatGPT 连接器 UI 不支持自定义 header，因此暂不能使用 <code>CONNECTOR_SECRET</code> 方案做访问控制；<code>ALLOW_NO_AUTH=true</code> 时任何知道部署 URL 的人都可直接调用全部 11 个工具</li>
-          <li><strong>规划中：</strong>多用户 GitHub OAuth（见本页图示）—— 每个用户认证自己的 GitHub 账号，服务端仅代理 token，不再需要共享 PAT</li>
-          <li>不支持删除文件 / 删除分支等破坏性操作 —— 这是有意为之的边界，不在 v1 或 OAuth 阶段的计划范围内</li>
+          <li><strong>当前：</strong>多用户 GitHub OAuth 已上线 —— 每个 ChatGPT 使用者用自己的 GitHub 账号登录授权，服务端按 <code>githubUserId</code> 隔离每个人的 token，不再有共享身份</li>
+          <li><strong>当前：</strong>旧版单一共享 <code>GITHUB_TOKEN</code> / <code>CONNECTOR_SECRET</code> / <code>ALLOW_NO_AUTH</code> 方案已完全移除，无向后兼容 —— 见本页图示</li>
+          <li>Classic GitHub OAuth App 的 token 不会过期、也没有 <code>refresh_token</code>；MCP 层面的 access token 有 24 小时有效期，由 ChatGPT 自动静默刷新（用户无感知）</li>
+          <li>授权粒度为 <code>repo</code>（读写公开 + 私有仓库）—— 相比旧版 Fine-grained PAT 更粗，这是 Classic OAuth App 不支持细粒度 scope 的已知取舍</li>
+          <li>不支持删除文件 / 删除分支等破坏性操作 —— 这是有意为之的边界，不在当前计划范围内</li>
         </ul>
       </div>
 
