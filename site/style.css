@@ -1,0 +1,576 @@
+/* ===== Design tokens ===== */
+:root {
+  --bg: #FAFAF8;
+  --bg-subtle: #F3F2EE;
+  --text: #1A1A1A;
+  --text-muted: #6B6B6B;
+  --accent: #1E4FD8;
+  --accent-hover: #1A45BE;
+  --border: #E8E7E3;
+  --success: #1F9D57;
+
+  --font-sans: "Inter", "Noto Sans SC", "Source Han Sans SC", -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+  --space-8: 64px;
+  --space-12: 96px;
+  --space-16: 128px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Typography scale (modular, ratio 1.333) ===== */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: none;
+}
+
+.h1 {
+  font-size: 3.157rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+}
+
+.h2 {
+  font-size: 2.369rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.body-text {
+  font-size: 1.125rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== Nav ===== */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  transition: background-color 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo);
+}
+
+/* .surfaced is applied once, shortly after page load (per spec: the nav
+   materializes "as the page loads, not instantly") — see the
+   `nav.classList.add('surfaced')` call in script.js Task 2 Step 4's nav
+   block. It stays applied afterward regardless of scroll position; this
+   class name (not `.scrolled`) reflects that its trigger is load-timing,
+   not scroll position. */
+.site-nav.surfaced {
+  background: rgba(250, 250, 248, 0.8);
+  backdrop-filter: blur(8px);
+  border-bottom-color: var(--border);
+}
+
+.nav-logo {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9375rem;
+}
+
+.nav-link:hover {
+  color: var(--text);
+}
+
+.nav-cta {
+  background: var(--accent);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: background-color 0.2s var(--ease-out-expo);
+}
+
+.nav-cta:hover {
+  background: var(--accent-hover);
+}
+
+/* ===== Hero ===== */
+.hero {
+  position: relative;
+  padding: var(--space-16) var(--space-4) var(--space-12);
+}
+
+/* Hairline divider that draws in left-to-right (per spec) once the hero
+   sequence completes, instead of being a static border from page load. */
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.6s var(--ease-out-expo);
+}
+
+.hero.divider-drawn::after {
+  transform: scaleX(1);
+}
+
+.hero-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.hero-demo {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-4);
+  min-height: 80px;
+}
+
+.hero-cursor {
+  color: var(--accent);
+  font-size: 1.25rem;
+  animation: blink 1.06s steps(1) infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.hero-typed {
+  color: var(--text-muted);
+  font-size: 1.125rem;
+}
+
+.hero-result {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--space-2);
+  padding: 10px 16px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  color: var(--text);
+  width: fit-content;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s var(--ease-out-expo), transform 0.4s var(--ease-out-expo);
+}
+
+.hero-result.visible {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-result-check {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.hero-headline {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s var(--ease-out-expo), transform 0.5s var(--ease-out-expo);
+}
+
+.hero-headline.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-subhead {
+  margin-top: var(--space-2);
+  max-width: 560px;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-out-expo);
+}
+
+.hero-subhead.visible {
+  opacity: 1;
+}
+
+.nav-cta.cursor-landed .nav-cta-cursor {
+  animation: blink 1.06s steps(1) infinite;
+}
+
+/* ===== Diff section ===== */
+.diff-section {
+  padding: var(--space-16) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.diff-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.diff-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 720px) {
+  .diff-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.diff-header {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  color: var(--text-muted);
+}
+
+.diff-header-accent {
+  color: var(--accent);
+}
+
+.diff-line {
+  font-size: 0.9375rem;
+  padding: 4px 0;
+}
+
+.diff-line-removed {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.diff-line-added {
+  color: var(--accent);
+}
+
+/* ===== Tools section ===== */
+.tools-section {
+  padding: var(--space-16) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.tools-inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.tools-timeline {
+  position: relative;
+  margin-top: var(--space-6);
+  padding-left: var(--space-4);
+}
+
+.tools-caption {
+  margin-top: var(--space-6);
+  padding-left: var(--space-4);
+}
+
+.tools-rule {
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--border);
+}
+
+.tool-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 0;
+}
+
+/* Subtle grouping (per spec: "may be grouped subtly by category") — the
+   first item of the "issue" group and the first item of the "pr" group
+   each get a bit of extra top spacing via the adjacent-sibling combinator,
+   reading as a soft break between the repo/issue/pr clusters without a
+   hard card boundary. This is the actual (previously unused) purpose of
+   each .tool-item's data-group attribute set in this task's HTML. */
+.tool-item[data-group="repo"] + .tool-item[data-group="issue"],
+.tool-item[data-group="issue"] + .tool-item[data-group="pr"] {
+  margin-top: var(--space-2);
+}
+
+.tool-dot {
+  position: absolute;
+  left: calc(-1 * var(--space-4) + 0px);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  transition: background-color 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo), transform 0.3s var(--ease-out-expo);
+}
+
+.tool-label {
+  color: var(--text-muted);
+  font-size: 1rem;
+  transition: color 0.3s var(--ease-out-expo);
+}
+
+.tool-item.visible .tool-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.15);
+}
+
+.tool-item.visible .tool-label {
+  color: var(--text);
+}
+
+/* ===== Security section ===== */
+.security-section {
+  padding: var(--space-16) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+
+.security-badge {
+  max-width: 480px;
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.2s var(--ease-out-expo), transform 0.2s var(--ease-out-expo);
+}
+
+.security-badge:hover {
+  border-color: var(--accent);
+  transform: scale(1.02);
+}
+
+.security-lock {
+  font-size: 1.75rem;
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.security-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.security-caption {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+/* ===== Tutorial section ===== */
+.tutorial-section {
+  padding: var(--space-16) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.tutorial-inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.tutorial-steps {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 720px) {
+  .tutorial-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Two stacked lines: a static gray track (always visible, shows the full
+   path) and an indigo fill line that grows left-to-right via scaleX — this
+   is the actual "relay baton" motion the spec describes, driven by a single
+   timed animation rather than per-step independent triggers (which, on the
+   desktop 3-column grid, would fire near-simultaneously and never look
+   sequential). */
+.tutorial-relay-line {
+  position: absolute;
+  top: 15px;
+  left: calc(16.66% + 15px);
+  right: calc(16.66% + 15px);
+  height: 1px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.tutorial-relay-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.2s var(--ease-out-expo);
+}
+
+.tutorial-relay-line.running .tutorial-relay-fill {
+  transform: scaleX(1);
+}
+
+@media (max-width: 720px) {
+  .tutorial-relay-line {
+    display: none;
+  }
+}
+
+.tutorial-step {
+  position: relative;
+  z-index: 1;
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 600;
+  background: var(--bg);
+  transition: background-color 0.3s var(--ease-out-expo), border-color 0.3s var(--ease-out-expo), color 0.3s var(--ease-out-expo);
+}
+
+.tutorial-step.visible .step-number {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.step-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  transition: color 0.3s var(--ease-out-expo);
+}
+
+.tutorial-step.visible .step-icon {
+  color: var(--accent);
+}
+
+.step-title {
+  margin-top: var(--space-2);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.step-desc {
+  margin-top: var(--space-1);
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.step-desc code {
+  background: var(--bg-subtle);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+/* ===== Closing CTA ===== */
+.closing-cta {
+  padding: var(--space-16) var(--space-4);
+  text-align: center;
+}
+
+.closing-cta-inner {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.closing-cta-button {
+  display: inline-block;
+  margin-top: var(--space-4);
+  background: var(--accent);
+  color: white;
+  padding: 14px 32px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  transition: background-color 0.2s var(--ease-out-expo);
+}
+
+.closing-cta-button:hover {
+  background: var(--accent-hover);
+}
+
+.closing-cta-endpoint {
+  margin-top: var(--space-4);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}

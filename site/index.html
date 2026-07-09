@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>github-connector — 在对话里，操作你的仓库</title>
+  <meta name="description" content="github-connector 让 ChatGPT 直接读写文件、管理 Issue 与 PR——用你自己的 GitHub 账号登录，权限始终在你手中。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="site-nav">
+    <span class="mono nav-logo">github-connector</span>
+    <div class="nav-links">
+      <a href="#tutorial" class="nav-link">文档</a>
+      <a href="index.en.html" class="nav-link">English</a>
+      <a href="#cta" class="nav-cta" id="nav-cta">开始使用 <span class="nav-cta-cursor mono" id="nav-cta-cursor" style="display:none;">▍</span></a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">// github-connector</p>
+        <div class="hero-demo mono" id="hero-demo" data-typed-text="把这个 issue 转成 PR" data-result-text="已创建 PR #128">
+          <span id="hero-cursor" class="hero-cursor">▍</span><span id="hero-typed-line" class="hero-typed"></span>
+          <div id="hero-result-card" class="hero-result">
+            <span class="hero-result-check">✓</span> <span id="hero-result-text"></span>
+          </div>
+        </div>
+        <h1 id="hero-headline" class="h1 hero-headline">在对话里，操作你的仓库。</h1>
+        <p id="hero-subhead" class="body-text hero-subhead">github-connector 让 ChatGPT 直接读写文件、管理 Issue 与 PR——用你自己的 GitHub 账号登录，权限始终在你手中。</p>
+      </div>
+    </section>
+
+    <section class="diff-section">
+      <div class="diff-inner">
+        <p class="eyebrow">// 为什么需要它</p>
+        <div class="diff-columns">
+          <div class="diff-col diff-col-before mono">
+            <p class="diff-header">− 没有 github-connector</p>
+            <p class="diff-line diff-line-removed">切到 GitHub 网页</p>
+            <p class="diff-line diff-line-removed">找到文件手动改</p>
+            <p class="diff-line diff-line-removed">复制粘贴上下文</p>
+          </div>
+          <div class="diff-col diff-col-after mono">
+            <p class="diff-header diff-header-accent">+ 有了 github-connector</p>
+            <p class="diff-line diff-line-added">在对话里说一句话就行</p>
+            <p class="diff-line diff-line-added">ChatGPT 直接帮你改</p>
+            <p class="diff-line diff-line-added">不用离开对话窗口</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tools-section">
+      <div class="tools-inner">
+        <p class="eyebrow">11 项能力，逐一验证过</p>
+        <div class="tools-timeline">
+          <div class="tools-rule"></div>
+          <div class="tool-item" data-group="repo">
+            <span class="tool-dot"></span>
+            <span class="tool-label">列出仓库文件树</span>
+          </div>
+          <div class="tool-item" data-group="repo">
+            <span class="tool-dot"></span>
+            <span class="tool-label">读取单个文件内容</span>
+          </div>
+          <div class="tool-item" data-group="repo">
+            <span class="tool-dot"></span>
+            <span class="tool-label">新增/修改文件</span>
+          </div>
+          <div class="tool-item" data-group="issue">
+            <span class="tool-dot"></span>
+            <span class="tool-label">创建 Issue</span>
+          </div>
+          <div class="tool-item" data-group="issue">
+            <span class="tool-dot"></span>
+            <span class="tool-label">列出 Issue</span>
+          </div>
+          <div class="tool-item" data-group="issue">
+            <span class="tool-dot"></span>
+            <span class="tool-label">查询 Issue 详情</span>
+          </div>
+          <div class="tool-item" data-group="issue">
+            <span class="tool-dot"></span>
+            <span class="tool-label">评论 Issue 或 PR</span>
+          </div>
+          <div class="tool-item" data-group="pr">
+            <span class="tool-dot"></span>
+            <span class="tool-label">创建 PR</span>
+          </div>
+          <div class="tool-item" data-group="pr">
+            <span class="tool-dot"></span>
+            <span class="tool-label">列出 PR</span>
+          </div>
+          <div class="tool-item" data-group="pr">
+            <span class="tool-dot"></span>
+            <span class="tool-label">查询 PR 详情</span>
+          </div>
+          <div class="tool-item" data-group="pr">
+            <span class="tool-dot"></span>
+            <span class="tool-label">合并 PR</span>
+          </div>
+        </div>
+        <p class="tools-caption body-text">创建、评论、关闭 Issue——和你在 GitHub 网页上做的一样，只是现在你只需要说一句话。</p>
+      </div>
+    </section>
+
+    <section class="security-section">
+      <div class="security-inner">
+        <div class="security-badge">
+          <span class="security-lock">🔒</span>
+          <p class="security-title">你的 GitHub 账号，你的授权</p>
+          <p class="security-caption">每个用户使用自己的 GitHub 账号登录，服务端不保存任何共享凭据。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="tutorial-section" id="tutorial">
+      <div class="tutorial-inner">
+        <p class="eyebrow">// 三步完成接入</p>
+        <div class="tutorial-steps">
+          <div class="tutorial-relay-line"><div class="tutorial-relay-fill"></div></div>
+          <div class="tutorial-step" data-step="1">
+            <span class="step-number">1</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M9 7V3m6 4V3M6 10h12a1 1 0 011 1v3a5 5 0 01-5 5h-4a5 5 0 01-5-5v-3a1 1 0 011-1z"/>
+              <path d="M9 19v2m6-2v2"/>
+            </svg>
+            <h3 class="step-title">添加连接器</h3>
+            <p class="step-desc">ChatGPT → 设置 → Connectors → 新建 App，Server URL 填 <code class="mono">https://github-connector.jason1105.uk/mcp</code>。</p>
+          </div>
+          <div class="tutorial-step" data-step="2">
+            <span class="step-number">2</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="9" rx="1.5"/>
+              <path d="M8 11V8a4 4 0 018 0v3"/>
+              <circle cx="12" cy="15" r="1.25" fill="currentColor" stroke="none"/>
+            </svg>
+            <h3 class="step-title">用 GitHub 登录并授权</h3>
+            <p class="step-desc">Authentication 选择 <strong>OAuth</strong>；点击 Create 后会跳转到 GitHub 登录页，用你自己的账号登录并授权。</p>
+          </div>
+          <div class="tutorial-step" data-step="3">
+            <span class="step-number">3</span>
+            <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M4 5h16a1 1 0 011 1v9a1 1 0 01-1 1H10l-4 4v-4H4a1 1 0 01-1-1V6a1 1 0 011-1z"/>
+              <path d="M8 10h8M8 13h5"/>
+            </svg>
+            <h3 class="step-title">直接在对话里下指令</h3>
+            <p class="step-desc">例如"列出这个仓库的文件"或"把这个 issue 转成 PR"，ChatGPT 会调用 github-connector 完成操作。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing-cta" id="cta">
+      <div class="closing-cta-inner">
+        <h2 class="h2">在对话里，操作你的仓库。</h2>
+        <a href="https://chatgpt.com" class="closing-cta-button">开始使用</a>
+        <p class="closing-cta-endpoint mono">github-connector.jason1105.uk/mcp</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
